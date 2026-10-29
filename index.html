@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#14532d">
+<title>Field Officer Tracker</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:sans-serif;background:#f1f5f1;color:#17251b}
+header{background:#14532d;color:white;padding:20px 16px}
+header h2{margin:0 0 6px}
+header p{margin:0;font-size:13px}
+main{max-width:650px;margin:auto;padding:14px}
+.card{background:white;border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px #0001}
+h3{margin:0 0 14px;color:#14532d}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:#e0f2e6;padding:14px;border-radius:12px}
+.stat strong{font-size:25px;display:block;color:#14532d}
+label{display:block;font-size:14px;font-weight:bold;margin:12px 0 5px}
+input,select,textarea,button{width:100%;padding:12px;border:1px solid #cbd5ce;border-radius:8px;font-size:15px}
+textarea{min-height:75px}
+button{border:0;background:#15803d;color:white;font-weight:bold;margin-top:10px}
+button.secondary{background:#334155}
+button.danger{background:#b91c1c}
+.row{display:flex;gap:8px}
+.row>*{flex:1;min-width:0}
+.visit{border-bottom:1px solid #e5e7eb;padding:12px 0}
+.visit:last-child{border-bottom:0}
+.small{font-size:13px;color:#526157;line-height:1.6}
+.tag{display:inline-block;background:#dcfce7;padding:4px 8px;border-radius:6px;font-size:12px}
+.empty{color:#64748b;text-align:center;padding:18px}
+</style>
+</head>
+<body>
+<header>
+<h2>🌱 Field Officer Tracker</h2>
+<p>ගොවිපල ක්ෂේත්‍ර නිලධාරී සටහන් | Farm Visit Records</p>
+</header>
+<main>
+<div class="card">
+<h3>📊 Dashboard / සාරාංශය</h3>
+<div class="stats">
+<div class="stat"><strong id="today">0</strong>අද පරීක්ෂණ / Today</div>
+<div class="stat"><strong id="month">0</strong>මේ මාසයේ / This Month</div>
+<div class="stat"><strong id="farmers">0</strong>ගොවීන් / Unique Farmers</div>
+<div class="stat"><strong id="newfarmers">0</strong>නව ගොවීන් / New Farmers</div>
+</div>
+</div>
+
+<div class="card">
+<h3>➕ Add Farm Visit / නව පරීක්ෂණයක්</h3>
+<form id="visitForm">
+<label>ගොවි මහතාගේ නම / Farmer Name *</label>
+<input id="name" required maxlength="100" placeholder="ගොවි මහතාගේ නම">
+
+<label>ගොවිපල ලියාපදිංචි අංකය / Registration No.</label>
+<input id="reg" maxlength="60" placeholder="ලියාපදිංචි අංකය තිබේ නම්">
+
+<label>ලියාපදිංචි තත්ත්වය / Registration Status *</label>
+<select id="status">
+<option value="registered">ලියාපදිංචි ගොවියෙක් / Registered</option>
+<option value="new">නව, තවම ලියාපදිංචි නැති ගොවියෙක් / New Farmer</option>
+</select>
+
+<label>දිනය / Date *</label>
+<input id="date" type="date" required>
+
+<label>ගම / ප්‍රදේශය / Village or Area</label>
+<input id="village" maxlength="100" placeholder="ගම හෝ ප්‍රදේශය">
+
+<label>පරීක්ෂණ වර්ගය / Activity *</label>
+<select id="activity" required>
+<option value="එළගව ගොවිපල පරික්ශාව">එළගව ගොවිපල පරික්ශාව</option>
+<option value="මී ගව ගොවිපල පරික්ශාව">මී ගව ගොවිපල පරික්ශාව</option>
+<option value="කුකුලු ගොවිපල පරික්ශාව">කුකුලු ගොවිපල පරික්ශාව</option>
+<option value="ඌරු ගොවිපල පරික්ශාව">ඌරු ගොවිපල පරික්ශාව</option>
+<option value="වටු ගොවිපල පරික්ශාව">වටු ගොවිපල පරික්ශාව</option>
+<option value="කෘතීම සිංචන">කෘතීම සිංචන</option>
+</select>
+
+<label>සටහන් / Notes</label>
+<textarea id="notes" maxlength="1000" placeholder="පරීක්ෂණයේ විස්තර"></textarea>
+<button type="submit">💾 Save Visit / සටහන් කරන්න</button>
+</form>
+</div>
+
+<div class="card">
+<h3>📋 Visit History / පරීක්ෂණ ඉතිහාසය</h3>
+<input id="search" placeholder="නම, ලියාපදිංචි අංකය හෝ ගම සොයන්න...">
+<div id="history"></div>
+</div>
+
+<div class="card">
+<h3>📅 Monthly Report / මාසික වාර්තාව</h3>
+<label>මාසය තෝරන්න / Select Month</label>
+<input id="reportMonth" type="month">
+<div id="report"></div>
+<button id="csvBtn">⬇ Export CSV / වාර්තාව Download කරන්න</button>
+<button id="backupBtn" class="secondary">Backup JSON Download</button>
+<label>Backup එකක් නැවත ලබාගන්න / Restore Backup</label>
+<input id="restoreFile" type="file" accept=".json,application/json">
+</div>
+
+<div class="card">
+<h3>ℹ️ Data & Sync / දත්ත තත්ත්වය</h3>
+<p class="small">දත්ත මේ උපාංගයේ Browser Storage තුළ Save වේ. මේ Version එකේ Cloud Sync නැත. Browser දත්ත මකා දැමුවහොත් සටහන් නැතිවිය හැකි බැවින් Backup එකක් තබාගන්න.</p>
+<p class="small" id="saveStatus">Local storage / උපාංගයේ දත්ත</p>
+</div>
+</main>
+
+<script>
+const KEY='fieldOfficerTracker_v1';
+let visits=[];
+try{visits=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(visits))visits=[];}catch(e){visits=[];}
+const $=id=>document.getElementById(id);
+const today=new Date();
+const pad=n=>String(n).padStart(2,'0');
+const isoDate=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+$('date').value=isoDate(today);
+$('reportMonth').value=today.getFullYear()+'-'+pad(today.getMonth()+1);
+
+function save(){
+ try{
+ localStorage.setItem(KEY,JSON.stringify(visits));
+ $('saveStatus').textContent='Saved on this device / උපාංගයේ Save කර ඇත';
+ }catch(e){alert('Storage full. Please export a backup.');}
+ render();
+}
+function farmerKey(v){return v.name.trim().toLocaleLowerCase();}
+function uniqueFarmers(list){return new Set(list.map(farmerKey)).size;}
+function render(){
+ const ym=$('reportMonth').value;
+ const now=isoDate(today);
+ const currentMonth=now.slice(0,7);
+ $('today').textContent=visits.filter(v=>v.date===now).length;
+ $('month').textContent=visits.filter(v=>v.date.startsWith(currentMonth)).length;
+ $('farmers').textContent=uniqueFarmers(visits);
+ const farmerStatus=new Map();
+ visits.forEach(v=>{
+   const k=farmerKey(v);
+   if(!farmerStatus.has(k))farmerStatus.set(k,v.status);
+   if(v.status==='registered')farmerStatus.set(k,'registered');
+ });
+ $('newfarmers').textContent=[...farmerStatus.values()].filter(s=>s==='new').length;
+ const q=$('search').value.trim().toLocaleLowerCase();
+ const filtered=visits.filter(v=>(v.name+' '+v.reg+' '+v.village+' '+v.activity).toLocaleLowerCase().includes(q)).slice().reverse();
+ $('history').innerHTML=filtered.length?filtered.map(v=>`
+ <div class="visit">
+ <b>${esc(v.name)}</b> <span class="tag">${v.status==='registered'?'Registered':'NEW FARMER'}</span>
+ <div class="small">${esc(v.date)} · ${esc(v.activity)}<br>
+ ${esc(v.village||'Area not entered')} · ${v.reg?'Reg: '+esc(v.reg):'No registration number'}<br>
+ ${esc(v.notes||'')}</div>
+ <button class="danger" onclick="removeVisit('${v.id}')">Delete / මකන්න</button>
+ </div>`).join(''):'<div class="empty">No visits found / සටහන් නැත</div>';
+ const list=visits.filter(v=>v.date.startsWith(ym));
+ const cats=[...new Set(list.map(v=>v.activity))];
+ $('report').innerHTML=`
+ <p><b>Total Visits / මුළු පරීක්ෂණ:</b> ${list.length}</p>
+ <p><b>Unique Farmers / වෙනස් ගොවීන්:</b> ${uniqueFarmers(list)}</p>
+ <p><b>Registered Farmers Visited / ලියාපදිංචි ගොවීන්:</b> ${uniqueFarmers(list.filter(v=>v.status==='registered'))}</p>
+ <p><b>Unique New Farmers / නව ගොවීන්:</b> ${uniqueFarmers(list.filter(v=>v.status==='new'&&!list.some(r=>farmerKey(r)===farmerKey(v)&&r.status==='registered')))}</p>
+ <b>Activity Totals / වර්ග අනුව:</b>
+ ${cats.map(c=>`<p class="small">${esc(c)}: ${list.filter(v=>v.activity===c).length}</p>`).join('')||'<p class="small">No data / දත්ත නැත</p>'}
+ <hr><b>Visit Details / විස්තර</b>
+ ${list.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(v=>`<p class="small">${v.date.replaceAll('-','.')} දින ${esc(v.name)} මහතා ${esc(v.activity)}</p>`).join('')}
+ `;
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+window.removeVisit=id=>{if(confirm('Delete this visit? / මෙම සටහන මකන්නද?')){visits=visits.filter(v=>v.id!==id);save();}};
+$('visitForm').addEventListener('submit',e=>{
+ e.preventDefault();
+ const name=$('name').value.trim();
+ if(!name){alert('Enter farmer name');return;}
+ const status=$('status').value;
+ const reg=$('reg').value.trim();
+ if(status==='registered'&&!reg&&!confirm('Registration number is empty. Save as registered anyway?'))return;
+ visits.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),name,reg,status,date:$('date').value,village:$('village').value.trim(),activity:$('activity').value,notes:$('notes').value.trim()});
+ save();
+ $('visitForm').reset();
+ $('date').value=isoDate(new Date());
+ alert('Visit saved / සටහන Save කළා');
+});
+$('search').addEventListener('input',render);
+$('reportMonth').addEventListener('change',render);
+function download(name,content,type){
+ const blob=new Blob([content],{type});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement('a');a.href=url;a.download=name;a.click();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+$('csvBtn').onclick=()=>{
+ const ym=$('reportMonth').value;
+ const list=visits.filter(v=>v.date.startsWith(ym));
+ const rows=[['Date','Farmer Name','Registration No','Status','Village','Activity','Notes'],...list.map(v=>[v.date,v.name,v.reg,v.status,v.village,v.activity,v.notes])];
+ const csv='\uFEFF'+rows.map(r=>r.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+ download('FieldVisitReport_'+ym+'.csv',csv,'text/csv;charset=utf-8;');
+};
+$('backupBtn').onclick=()=>download('FieldOfficerBackup.json',JSON.stringify(visits,null,2),'application/json');
+$('restoreFile').addEventListener('change',async e=>{
+ const file=e.target.files[0];if(!file)return;
+ try{
+  const data=JSON.parse(await file.text());
+  if(!Array.isArray(data)||!data.every(v=>v&&v.name&&v.date&&v.activity))throw Error('Invalid');
+  if(confirm('Replace current records with backup? / දැනට ඇති දත්ත වෙනුවට Backup දාන්නද?')){visits=data;save();alert('Backup restored');}
+ }catch(err){alert('Invalid backup file / Backup ගොනුව වැරදියි');}
+ e.target.value='';
+});
+render();
+</script>
+</body>
+</html>
