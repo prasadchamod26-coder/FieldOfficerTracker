@@ -104,11 +104,23 @@ button.danger{background:#b91c1c}
 
 <div class="card">
 <h3>ℹ️ Data & Sync / දත්ත තත්ත්වය</h3>
-<p class="small">දත්ත මේ උපාංගයේ Browser Storage තුළ Save වේ. මේ Version එකේ Cloud Sync නැත. Browser දත්ත මකා දැමුවහොත් සටහන් නැතිවිය හැකි බැවින් Backup එකක් තබාගන්න.</p>
+<p class="small">දත්ත දුරකථනයේ Save වන අතර Login වූ විට Firebase Cloud එකට Sync වේ.</p>
+<label>Firebase Email</label>
+<input id="cloudEmail" type="email" autocomplete="username" placeholder="Firebase account email">
+<label>Firebase Password</label>
+<input id="cloudPassword" type="password" autocomplete="current-password" placeholder="Firebase password">
+<div class="row">
+<button type="button" id="cloudLoginBtn">Login / Sync</button>
+<button type="button" class="secondary" id="cloudLogoutBtn">Logout</button>
+</div>
+<p class="small" id="cloudAccount">Cloud account: Not signed in</p>
 <p class="small" id="saveStatus">Local storage / උපාංගයේ දත්ත</p>
 </div>
 </main>
 
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
 const KEY='fieldOfficerTracker_v1';
 let visits=[];
@@ -215,5 +227,7 @@ $('restoreFile').addEventListener('change',async e=>{
 });
 render();
 </script>
+
+<script src="cloud.js"></script>
 </body>
 </html>

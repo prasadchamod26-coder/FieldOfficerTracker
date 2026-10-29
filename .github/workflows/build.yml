@@ -46,6 +46,7 @@ jobs:
           mkdir -p app/src/main/assets
 
           cp index.html app/src/main/assets/index.html
+          cp cloud.js app/src/main/assets/cloud.js
 
           cat > settings.gradle <<'EOF'
           pluginManagement {
@@ -89,10 +90,15 @@ jobs:
                   versionName '1.0'
               }
           }
+
+          dependencies {
+              implementation 'androidx.webkit:webkit:1.12.1'
+          }
           EOF
 
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET"/>
               <application
                   android:theme="@android:style/Theme.Material.Light.NoActionBar"
                   android:label="Field Officer Tracker"
@@ -120,6 +126,8 @@ jobs:
           import android.webkit.JavascriptInterface;
           import android.webkit.WebView;
           import android.webkit.WebSettings;
+          import android.webkit.WebViewClient;
+          import androidx.webkit.WebViewAssetLoader;
           import android.webkit.WebChromeClient;
           import android.webkit.JsResult;
           import android.widget.Toast;
@@ -166,8 +174,20 @@ jobs:
                       }
                   });
           
+                  WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
+                      .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                      .build();
+
+                  webView.setWebViewClient(new WebViewClient() {
+                      @Override
+                      public android.webkit.WebResourceResponse shouldInterceptRequest(
+                              WebView view, android.webkit.WebResourceRequest request) {
+                          return assetLoader.shouldInterceptRequest(request.getUrl());
+                      }
+                  });
+
                   setContentView(webView);
-                  webView.loadUrl("file:///android_asset/index.html");
+                  webView.loadUrl("https://appassets.androidplatform.net/assets/index.html");
               }
           
               private class DownloadBridge {
