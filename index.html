@@ -184,10 +184,17 @@ $('visitForm').addEventListener('submit',e=>{
 $('search').addEventListener('input',render);
 $('reportMonth').addEventListener('change',render);
 function download(name,content,type){
- const blob=new Blob([content],{type});
- const url=URL.createObjectURL(blob);
- const a=document.createElement('a');a.href=url;a.download=name;a.click();
- setTimeout(()=>URL.revokeObjectURL(url),1000);
+  if(window.AndroidBridge){
+    window.AndroidBridge.saveFile(name,content,type);
+    return;
+  }
+  const blob=new Blob([content],{type});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=name;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 $('csvBtn').onclick=()=>{
  const ym=$('reportMonth').value;

@@ -111,30 +111,95 @@ jobs:
 
           cat > app/src/main/java/com/fieldofficer/tracker/MainActivity.java <<'EOF'
           package com.fieldofficer.tracker;
-
+          
           import android.app.Activity;
+          import android.app.AlertDialog;
           import android.os.Bundle;
+          import android.content.Intent;
+          import android.net.Uri;
+          import android.webkit.JavascriptInterface;
           import android.webkit.WebView;
           import android.webkit.WebSettings;
-
+          import android.webkit.WebChromeClient;
+          import android.webkit.JsResult;
+          import android.widget.Toast;
+          import android.graphics.Bitmap;
+          import android.net.http.SslError;
+          import android.webkit.SslErrorHandler;
+          import java.io.OutputStream;
+          import java.nio.charset.StandardCharsets;
+          
           public class MainActivity extends Activity {
+              private static final int CREATE_FILE = 1001;
+              private String pendingContent = "";
+          
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-
                   WebView webView = new WebView(this);
                   WebSettings settings = webView.getSettings();
                   settings.setJavaScriptEnabled(true);
                   settings.setDomStorageEnabled(true);
-
+          
+                  webView.addJavascriptInterface(new DownloadBridge(), "AndroidBridge");
+          
+                  webView.setWebChromeClient(new WebChromeClient() {
+                      @Override
+                      public boolean onJsAlert(WebView view, String url, String message, JsResult result) {
+                          new AlertDialog.Builder(MainActivity.this)
+                              .setMessage(message)
+                              .setPositiveButton("OK", (dialog, which) -> result.confirm())
+                              .setOnCancelListener(dialog -> result.cancel())
+                              .show();
+                          return true;
+                      }
+          
+                      @Override
+                      public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
+                          new AlertDialog.Builder(MainActivity.this)
+                              .setMessage(message)
+                              .setPositiveButton("Yes / ඔව්", (dialog, which) -> result.confirm())
+                              .setNegativeButton("No / නැහැ", (dialog, which) -> result.cancel())
+                              .setOnCancelListener(dialog -> result.cancel())
+                              .show();
+                          return true;
+                      }
+                  });
+          
                   setContentView(webView);
                   webView.loadUrl("file:///android_asset/index.html");
               }
-
+          
+              private class DownloadBridge {
+                  @JavascriptInterface
+                  public void saveFile(String filename, String content, String mimeType) {
+                      runOnUiThread(() -> {
+                          pendingContent = content;
+                          String mime = mimeType == null
+                              ? "application/octet-stream" : mimeType.split(";")[0];
+                          Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                          intent.addCategory(Intent.CATEGORY_OPENABLE);
+                          intent.setType(mime);
+                          intent.putExtra(Intent.EXTRA_TITLE, filename);
+                          startActivityForResult(intent, CREATE_FILE);
+                      });
+                  }
+              }
+          
               @Override
-              public void onBackPressed() {
-                  setContentView(new WebView(this));
-                  super.onBackPressed();
+              protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+                  super.onActivityResult(requestCode, resultCode, data);
+                  if (requestCode == CREATE_FILE && resultCode == RESULT_OK && data != null) {
+                      Uri uri = data.getData();
+                      try (OutputStream out = getContentResolver().openOutputStream(uri)) {
+                          if (out != null) {
+                              out.write(pendingContent.getBytes(StandardCharsets.UTF_8));
+                              Toast.makeText(this, "ගොනුව සුරැකුණා", Toast.LENGTH_LONG).show();
+                          }
+                      } catch (Exception e) {
+                          Toast.makeText(this, "ගොනුව සුරැකීමට නොහැකි වුණා", Toast.LENGTH_LONG).show();
+                      }
+                  }
               }
           }
           EOF
