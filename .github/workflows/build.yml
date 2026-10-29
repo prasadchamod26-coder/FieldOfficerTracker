@@ -49,8 +49,8 @@ jobs:
           cp cloud.js app/src/main/assets/cloud.js
 
           cat > gradle.properties <<'EOF'
-android.useAndroidX=true
-EOF
+          android.useAndroidX=true
+          EOF
 
           cat > settings.gradle <<'EOF'
           pluginManagement {
