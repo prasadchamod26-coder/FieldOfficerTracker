@@ -57,6 +57,9 @@ button.danger{background:#b91c1c}
 <label>ගොවිපල ලියාපදිංචි අංකය / Registration No.</label>
 <input id="reg" maxlength="60" placeholder="ලියාපදිංචි අංකය තිබේ නම්">
 
+<label>දුරකථන අංකය / Phone Number</label>
+<input id="phone" type="tel" maxlength="20" placeholder="07XXXXXXXX">
+
 <label>ලියාපදිංචි තත්ත්වය / Registration Status *</label>
 <select id="status">
 <option value="registered">ලියාපදිංචි ගොවියෙක් / Registered</option>
@@ -81,6 +84,11 @@ button.danger{background:#b91c1c}
 
 <label>සටහන් / Notes</label>
 <textarea id="notes" maxlength="1000" placeholder="පරීක්ෂණයේ විස්තර"></textarea>
+
+<button type="button" id="gpsBtn" class="secondary">📍 Get GPS Location / ස්ථානය ලබාගන්න</button>
+<p class="small" id="gpsStatus">GPS Location ලබාගෙන නැත.</p>
+<input type="hidden" id="latitude">
+<input type="hidden" id="longitude">
 <button type="submit">💾 Save Visit / සටහන් කරන්න</button>
 </form>
 </div>
@@ -175,13 +183,14 @@ function render(){
  });
  $('newfarmers').textContent=[...farmerStatus.values()].filter(s=>s==='new').length;
  const q=$('search').value.trim().toLocaleLowerCase();
- const filtered=visits.filter(v=>(v.name+' '+v.reg+' '+v.village+' '+v.activity).toLocaleLowerCase().includes(q)).slice().reverse();
+ const filtered=visits.filter(v=>(v.name+' '+v.reg+' '+(v.phone||'')+' '+v.village+' '+v.activity).toLocaleLowerCase().includes(q)).slice().reverse();
  $('history').innerHTML=filtered.length?filtered.map(v=>`
  <div class="visit">
  <b>${esc(v.name)}</b> <span class="tag">${v.status==='registered'?'Registered':'NEW FARMER'}</span>
  <div class="small">${esc(v.date)} · ${esc(v.activity)}<br>
- ${esc(v.village||'Area not entered')} · ${v.reg?'Reg: '+esc(v.reg):'No registration number'}<br>
- ${esc(v.notes||'')}</div>
+ ${esc(v.village||'Area not entered')} · ${v.reg?'Reg: '+esc(v.reg):'No registration number'} · ${v.phone?'Phone: '+esc(v.phone):'No phone'}<br>
+ ${esc(v.notes||'')}<br>
+ ${v.latitude&&v.longitude?'<a href="https://www.google.com/maps?q='+encodeURIComponent(v.latitude+','+v.longitude)+'" target="_blank" rel="noopener">📍 View GPS Location / සිතියමේ බලන්න</a>':''}</div>
  <button class="danger" onclick="removeVisit('${v.id}')">Delete / මකන්න</button>
  </div>`).join(''):'<div class="empty">No visits found / සටහන් නැත</div>';
  const list=visits.filter(v=>v.date.startsWith(ym));
@@ -205,16 +214,34 @@ window.removeVisit=id=>{
    save();
  }
 };
+$('gpsBtn').onclick=()=>{
+ if(!navigator.geolocation){
+  alert('මෙම උපාංගයේ GPS පහසුකම නොමැත.');
+  return;
+ }
+ $('gpsStatus').textContent='GPS Location ලබාගනිමින්...';
+ navigator.geolocation.getCurrentPosition(pos=>{
+  $('latitude').value=pos.coords.latitude;
+  $('longitude').value=pos.coords.longitude;
+  $('gpsStatus').textContent='Location ලබාගත්තා: '+pos.coords.latitude.toFixed(6)+', '+pos.coords.longitude.toFixed(6);
+ },err=>{
+  $('gpsStatus').textContent='GPS ලබාගැනීමට නොහැකි වුණා.';
+  alert('GPS Permission ලබාදී Location ON කර නැවත උත්සාහ කරන්න.');
+ },{enableHighAccuracy:true,timeout:20000,maximumAge:0});
+};
+
 $('visitForm').addEventListener('submit',e=>{
  e.preventDefault();
  const name=$('name').value.trim();
  if(!name){alert('Enter farmer name');return;}
  const status=$('status').value;
  const reg=$('reg').value.trim();
+ const phone=$('phone').value.trim();
  if(status==='registered'&&!reg&&!confirm('Registration number is empty. Save as registered anyway?'))return;
- visits.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),name,reg,status,date:$('date').value,village:$('village').value.trim(),activity:$('activity').value,notes:$('notes').value.trim()});
+ visits.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),name,reg,phone,status,date:$('date').value,village:$('village').value.trim(),activity:$('activity').value,notes:$('notes').value.trim(),latitude:$('latitude').value,longitude:$('longitude').value});
  save();
  $('visitForm').reset();
+ $('gpsStatus').textContent='GPS Location ලබාගෙන නැත.';
  $('date').value=isoDate(new Date());
  alert('Visit saved / සටහන Save කළා');
 });

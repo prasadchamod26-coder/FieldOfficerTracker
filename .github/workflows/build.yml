@@ -119,6 +119,8 @@ jobs:
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET"/>
+          <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+          <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
               <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
               <application
                   android:theme="@android:style/Theme.Material.Light.NoActionBar"
@@ -176,6 +178,8 @@ jobs:
               private DownloadManager downloadManager;
               private long pendingDownloadId = -1;
               private BroadcastReceiver downloadReceiver;
+              private String pendingGeoOrigin;
+              private android.webkit.GeolocationPermissions.Callback pendingGeoCallback;
 
 
               @Override
@@ -204,10 +208,30 @@ jobs:
                   WebSettings settings = webView.getSettings();
                   settings.setJavaScriptEnabled(true);
                   settings.setDomStorageEnabled(true);
+                  settings.setGeolocationEnabled(true);
 
                   webView.addJavascriptInterface(new DownloadBridge(), "AndroidBridge");
 
                   webView.setWebChromeClient(new WebChromeClient() {
+                      @Override
+                      public void onGeolocationPermissionsShowPrompt(
+                              String origin,
+                              android.webkit.GeolocationPermissions.Callback callback) {
+                          if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                                  == PackageManager.PERMISSION_GRANTED ||
+                              checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION)
+                                  == PackageManager.PERMISSION_GRANTED) {
+                              callback.invoke(origin, true, false);
+                          } else {
+                              pendingGeoOrigin = origin;
+                              pendingGeoCallback = callback;
+                              requestPermissions(new String[]{
+                                  android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                  android.Manifest.permission.ACCESS_COARSE_LOCATION
+                              }, 2002);
+                          }
+                      }
+
                       @Override
                       public boolean onJsAlert(WebView view, String url, String message, JsResult result) {
                           new AlertDialog.Builder(MainActivity.this)
@@ -244,6 +268,23 @@ jobs:
 
                   setContentView(webView);
                   webView.loadUrl("https://appassets.androidplatform.net/assets/index.html");
+              }
+
+              @Override
+              public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+                  super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+                  if (requestCode == 2002 && pendingGeoCallback != null) {
+                      boolean granted = false;
+                      for (int result : grantResults) {
+                          if (result == PackageManager.PERMISSION_GRANTED) {
+                              granted = true;
+                              break;
+                          }
+                      }
+                      pendingGeoCallback.invoke(pendingGeoOrigin, granted, false);
+                      pendingGeoCallback = null;
+                      pendingGeoOrigin = null;
+                  }
               }
 
               private void installDownloadedApk() {
