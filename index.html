@@ -124,6 +124,7 @@ button.danger{background:#b91c1c}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
 const KEY='fieldOfficerTracker_v1';
+const AUTO_BACKUP_KEY='fieldOfficerTracker_autoBackup_v1';
 let visits=[];
 try{visits=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(visits))visits=[];}catch(e){visits=[];}
 const $=id=>document.getElementById(id);
@@ -135,8 +136,23 @@ $('reportMonth').value=today.getFullYear()+'-'+pad(today.getMonth()+1);
 
 function save(){
  try{
- localStorage.setItem(KEY,JSON.stringify(visits));
- $('saveStatus').textContent='Saved on this device / උපාංගයේ Save කර ඇත';
+  const newData=JSON.stringify(visits);
+  const oldData=localStorage.getItem(KEY);
+  if(oldData && oldData!==newData){
+   try{
+    const oldVisits=JSON.parse(oldData);
+    if(Array.isArray(oldVisits)){
+     let backups=JSON.parse(localStorage.getItem(AUTO_BACKUP_KEY)||'[]');
+     if(!Array.isArray(backups))backups=[];
+     if(!backups.length || JSON.stringify(backups[0].visits)!==oldData){
+      backups.unshift({savedAt:new Date().toISOString(),visits:oldVisits});
+     }
+     localStorage.setItem(AUTO_BACKUP_KEY,JSON.stringify(backups.slice(0,3)));
+    }
+   }catch(backupError){console.log('Auto backup error:',backupError);}
+  }
+  localStorage.setItem(KEY,newData);
+  $('saveStatus').textContent='Saved on this device / උපාංගයේ Save කර ඇත';
  }catch(e){alert('Storage full. Please export a backup.');}
  render();
 }
