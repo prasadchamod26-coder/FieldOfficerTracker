@@ -241,6 +241,14 @@ button.danger{background:#b91c1c}
 </div>
 </main>
 
+<script>
+window.addEventListener('error', function(e) {
+  alert('JavaScript Error: ' + e.message + ' Line: ' + e.lineno);
+});
+window.addEventListener('unhandledrejection', function(e) {
+  alert('Promise Error: ' + String(e.reason));
+});
+</script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
