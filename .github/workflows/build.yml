@@ -135,6 +135,9 @@ jobs:
           import android.webkit.WebChromeClient;
           import android.webkit.JsResult;
           import android.widget.Toast;
+          import android.content.Context;
+          import android.print.PrintManager;
+          import android.print.PrintAttributes;
           import android.graphics.Bitmap;
           import android.net.http.SslError;
           import android.webkit.SslErrorHandler;
@@ -144,6 +147,7 @@ jobs:
           public class MainActivity extends Activity {
               private static final int CREATE_FILE = 1001;
               private String pendingContent = "";
+              private WebView printWebView;
           
               @Override
               protected void onCreate(Bundle savedInstanceState) {
@@ -195,6 +199,27 @@ jobs:
               }
           
               private class DownloadBridge {
+                  @JavascriptInterface
+                  public void printPdf(String html) {
+                      runOnUiThread(() -> {
+                          printWebView = new WebView(MainActivity.this);
+                          printWebView.setWebViewClient(new WebViewClient() {
+                              @Override
+                              public void onPageFinished(WebView view, String url) {
+                                  PrintManager manager = (PrintManager) getSystemService(Context.PRINT_SERVICE);
+                                  if (manager != null) {
+                                      manager.print("Field Visit Monthly Report",
+                                          printWebView.createPrintDocumentAdapter("FieldVisitReport"),
+                                          new PrintAttributes.Builder()
+                                              .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
+                                              .build());
+                                  }
+                              }
+                          });
+                          printWebView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
+                      });
+                  }
+
                   @JavascriptInterface
                   public void saveFile(String filename, String content, String mimeType) {
                       runOnUiThread(() -> {

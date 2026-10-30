@@ -97,6 +97,7 @@ button.danger{background:#b91c1c}
 <input id="reportMonth" type="month">
 <div id="report"></div>
 <button id="csvBtn">⬇ Export CSV / වාර්තාව Download කරන්න</button>
+<button id="pdfBtn" class="secondary">📄 Monthly PDF Report / PDF වාර්තාව</button>
 <button id="backupBtn" class="secondary">Backup JSON Download</button>
 <label>Backup එකක් නැවත ලබාගන්න / Restore Backup</label>
 <input id="restoreFile" type="file" accept=".json,application/json">
@@ -221,6 +222,48 @@ $('csvBtn').onclick=()=>{
  const csv='\uFEFF'+rows.map(r=>r.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
  download('FieldVisitReport_'+ym+'.csv',csv,'text/csv;charset=utf-8;');
 };
+
+$('pdfBtn').onclick=()=>{
+ const ym=$('reportMonth').value;
+ if(!ym){alert('කරුණාකර මාසයක් තෝරන්න');return;}
+ const list=visits.filter(v=>v.date.startsWith(ym))
+   .slice().sort((a,b)=>a.date.localeCompare(b.date));
+ const rows=list.map(v=>`
+ <tr>
+ <td>${esc(v.date.replaceAll('-','.'))}</td>
+ <td>${esc(v.name)} මහතා</td>
+ <td>${esc(v.village||'—')}</td>
+ <td>${esc(v.activity||'—')}</td>
+ <td>${esc(v.reg||'—')}</td>
+ </tr>`).join('');
+ const html=`<!DOCTYPE html><html lang="si"><head><meta charset="UTF-8">
+ <title>Monthly Field Visit Report ${ym}</title>
+ <style>
+ @page{size:A4;margin:15mm}
+ body{font-family:"Noto Sans Sinhala","Noto Sans",sans-serif;color:#222;font-size:12px}
+ h2{text-align:center}
+ table{width:100%;border-collapse:collapse}
+ th,td{border:1px solid #777;padding:7px;text-align:left}
+ th{background:#e8edf2}
+ .total{margin-top:22px;font-size:16px;font-weight:bold}
+ </style></head><body>
+ <h2>මාසික ගොවිපල සංචාර වාර්තාව</h2>
+ <p style="text-align:center">Monthly Field Visit Report — ${esc(ym)}</p>
+ <table><thead><tr>
+ <th>දිනය</th><th>ගොවි මහතාගේ නම</th><th>ප්‍රදේශය</th>
+ <th>ගොවිපල වර්ගය</th><th>ලියාපදිංචි අංකය</th>
+ </tr></thead><tbody>
+ ${rows||'<tr><td colspan="5">මෙම මාසයට දත්ත නැත</td></tr>'}
+ </tbody></table>
+ <div class="total">මුළු මාසික සංචාර ගණන: ${list.length}</div>
+ </body></html>`;
+ if(window.AndroidBridge && window.AndroidBridge.printPdf){
+   window.AndroidBridge.printPdf(html);
+ }else{
+   alert('මෙම පහසුකම Android App එක තුළ පමණක් භාවිත කළ හැකියි.');
+ }
+};
+
 $('backupBtn').onclick=()=>download('FieldOfficerBackup.json',JSON.stringify(visits,null,2),'application/json');
 $('restoreFile').addEventListener('change',async e=>{
  const file=e.target.files[0];if(!file)return;
