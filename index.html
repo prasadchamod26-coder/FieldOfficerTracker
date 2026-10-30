@@ -201,6 +201,8 @@ button.danger{background:#b91c1c}
 <p class="small" id="gpsStatus">GPS Location ලබාගෙන නැත.</p>
 <input type="hidden" id="latitude">
 <input type="hidden" id="longitude">
+<input type="hidden" id="gpsAccuracy">
+<input type="hidden" id="gpsTimestamp">
 <button type="submit">💾 Save Visit / සටහන් කරන්න</button>
 </form>
 </div>
@@ -352,7 +354,9 @@ $('gpsBtn').onclick=()=>{
  navigator.geolocation.getCurrentPosition(pos=>{
   $('latitude').value=pos.coords.latitude;
   $('longitude').value=pos.coords.longitude;
-  $('gpsStatus').textContent='Location ලබාගත්තා: '+pos.coords.latitude.toFixed(6)+', '+pos.coords.longitude.toFixed(6);
+  $('gpsAccuracy').value=pos.coords.accuracy;
+  $('gpsTimestamp').value=new Date(pos.timestamp || Date.now()).toISOString();
+  $('gpsStatus').textContent='Location ලබාගත්තා: '+pos.coords.latitude.toFixed(6)+', '+pos.coords.longitude.toFixed(6)+' | Accuracy: '+Math.round(pos.coords.accuracy)+' m | වේලාව: '+new Date(pos.timestamp || Date.now()).toLocaleString();
  },err=>{
   $('gpsStatus').textContent='GPS ලබාගැනීමට නොහැකි වුණා.';
   alert('GPS Permission ලබාදී Location ON කර නැවත උත්සාහ කරන්න.');
@@ -394,12 +398,16 @@ $('visitForm').addEventListener('submit',e=>{
  const phone=$('phone').value.trim();
  const farmerId=$('visitFarmerSelect').value||'';
  if(status==='registered'&&!reg&&!confirm('Registration number is empty. Save as registered anyway?'))return;
- visits.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),farmerId,name,reg,phone,status,date:$('date').value,village:$('village').value.trim(),activity:$('activity').value,notes:$('notes').value.trim(),latitude:$('latitude').value,longitude:$('longitude').value});
+ visits.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),farmerId,name,reg,phone,status,date:$('date').value,village:$('village').value.trim(),activity:$('activity').value,notes:$('notes').value.trim(),latitude:$('latitude').value,longitude:$('longitude').value,gpsAccuracy:$('gpsAccuracy').value,gpsTimestamp:$('gpsTimestamp').value});
  save();
  $('visitForm').reset();
  ['name','reg','phone','village'].forEach(id=>$(id).readOnly=false);
  $('status').disabled=false;
  $('gpsStatus').textContent='GPS Location ලබාගෙන නැත.';
+ $('latitude').value='';
+ $('longitude').value='';
+ $('gpsAccuracy').value='';
+ $('gpsTimestamp').value='';
  $('date').value=isoDate(new Date());
  alert('Visit saved / සටහන Save කළා');
 });
