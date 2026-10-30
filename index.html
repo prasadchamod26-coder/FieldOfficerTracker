@@ -101,6 +101,8 @@ button.danger{background:#b91c1c}
 <button id="backupBtn" class="secondary">Backup JSON Download</button>
 <label>Backup එකක් නැවත ලබාගන්න / Restore Backup</label>
 <input id="restoreFile" type="file" accept=".json,application/json">
+<button type="button" id="autoRestoreBtn" class="secondary">♻️ Restore Auto Backup / ස්වයංක්‍රීය Backup නැවත ලබාගන්න</button>
+<p class="small" id="autoBackupStatus"></p>
 </div>
 
 <div class="card">
@@ -290,6 +292,34 @@ $('restoreFile').addEventListener('change',async e=>{
  }catch(err){alert('Invalid backup file / Backup ගොනුව වැරදියි');}
  e.target.value='';
 });
+$('autoRestoreBtn').onclick=()=>{
+ try{
+  const backups=JSON.parse(localStorage.getItem(AUTO_BACKUP_KEY)||'[]');
+  if(!Array.isArray(backups)||!backups.length){
+   alert('Auto Backup එකක් තවම නැහැ.');
+   return;
+  }
+  const choices=backups.map((b,i)=>(i+1)+'. '+new Date(b.savedAt).toLocaleString()+' ('+b.visits.length+' records)').join('\n');
+  const answer=prompt('Restore කිරීමට Backup අංකය තෝරන්න:\n'+choices,'1');
+  if(answer===null)return;
+  const index=Number(answer)-1;
+  if(!Number.isInteger(index)||index<0||index>=backups.length||!Array.isArray(backups[index].visits)){
+   alert('වැරදි Backup අංකයක්.');
+   return;
+  }
+  if(!confirm('දැනට ඇති දත්ත වෙනුවට මෙම Backup එක Restore කරන්නද?'))return;
+  const current=JSON.parse(localStorage.getItem(KEY)||'[]');
+  if(Array.isArray(current)){
+   const updated=[{savedAt:new Date().toISOString(),visits:current},...backups].slice(0,3);
+   localStorage.setItem(AUTO_BACKUP_KEY,JSON.stringify(updated));
+  }
+  visits=backups[index].visits;
+  save();
+  alert('Auto Backup Restore සාර්ථකයි.');
+ }catch(e){alert('Auto Backup Restore කිරීමේදී දෝෂයක් ඇතිවුණා.');}
+};
+const autoBackups=JSON.parse(localStorage.getItem(AUTO_BACKUP_KEY)||'[]');
+$('autoBackupStatus').textContent='Auto Backup පිටපත්: '+(Array.isArray(autoBackups)?autoBackups.length:0);
 render();
 </script>
 
