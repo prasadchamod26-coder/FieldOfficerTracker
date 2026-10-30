@@ -44,6 +44,21 @@ jobs:
         run: |
           mkdir -p app/src/main/java/com/fieldofficer/tracker
           mkdir -p app/src/main/assets
+          mkdir -p app/src/main/res/drawable
+
+          cat > app/src/main/res/drawable/ic_launcher.xml <<'EOF'
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path android:fillColor="#14532D" android:pathData="M0,0h108v108h-108z"/>
+              <path android:fillColor="#FFFFFF" android:pathData="M25,25h58a7,7 0,0 1,7 7v44a7,7 0,0 1,-7 7h-58a7,7 0,0 1,-7 -7v-44a7,7 0,0 1,7 -7z"/>
+              <path android:fillColor="#15803D" android:pathData="M54,69C35,68 30,54 34,37C51,38 62,46 60,59C69,46 78,43 83,44C82,62 70,73 54,69z"/>
+              <path android:fillColor="#14532D" android:pathData="M52,76C53,62 61,52 75,45L77,48C65,56 59,65 57,77z"/>
+              <path android:fillColor="#F59E0B" android:pathData="M29,77h50v5h-50z"/>
+          </vector>
+          EOF
 
           cp index.html app/src/main/assets/index.html
           cp cloud.js app/src/main/assets/cloud.js
@@ -126,6 +141,8 @@ jobs:
               <application
                   android:theme="@android:style/Theme.Material.Light.NoActionBar"
                   android:label="Field Officer Tracker"
+                  android:icon="@drawable/ic_launcher"
+                  android:roundIcon="@drawable/ic_launcher"
                   android:usesCleartextTraffic="false">
                   <activity
                       android:name=".MainActivity"
