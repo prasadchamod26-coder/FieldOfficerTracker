@@ -64,11 +64,57 @@ document.getElementById('cloudLogoutBtn').onclick = async () => {
 };
 
 
+// Farmer / AI Cloud Delete Queues
+const PROFILE_DELETE_KEY = 'fieldOfficerTracker_profileDeletes_v1';
+let profileDeleteQueues = { farmers: [], inseminations: [] };
+
+try {
+  profileDeleteQueues = JSON.parse(
+    localStorage.getItem(PROFILE_DELETE_KEY) || '{"farmers":[],"inseminations":[]}'
+  );
+  if (!profileDeleteQueues || typeof profileDeleteQueues !== 'object') {
+    profileDeleteQueues = { farmers: [], inseminations: [] };
+  }
+  ['farmers', 'inseminations'].forEach(k => {
+    if (!Array.isArray(profileDeleteQueues[k])) profileDeleteQueues[k] = [];
+  });
+} catch (e) {
+  profileDeleteQueues = { farmers: [], inseminations: [] };
+}
+
+function saveProfileDeleteQueues() {
+  localStorage.setItem(PROFILE_DELETE_KEY, JSON.stringify(profileDeleteQueues));
+}
+
+window.queueProfileCloudDelete = function(collectionName, id) {
+  if (!['farmers', 'inseminations'].includes(collectionName)) return;
+  id = String(id);
+  if (!profileDeleteQueues[collectionName].includes(id)) {
+    profileDeleteQueues[collectionName].push(id);
+    saveProfileDeleteQueues();
+  }
+};
+
 // Farmer Profiles සහ AI Records Cloud Sync
 async function syncProfileCollection(collectionName, localItems, storageKey) {
   const ref = cloudDB.collection('users')
     .doc(cloudUser.uid)
     .collection(collectionName);
+
+  // Delete queued profile records before downloading cloud data.
+  const queued = profileDeleteQueues[collectionName] || [];
+  if (queued.length > 0) {
+    if (queued.length > 450) {
+      throw new Error(collectionName + ' pending deletes ගණන වැඩියි.');
+    }
+
+    const deleteBatch = cloudDB.batch();
+    queued.forEach(id => deleteBatch.delete(ref.doc(String(id))));
+    await deleteBatch.commit();
+
+    profileDeleteQueues[collectionName] = [];
+    saveProfileDeleteQueues();
+  }
 
   const snap = await ref.get();
   const merged = new Map();

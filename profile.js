@@ -361,7 +361,65 @@ function showFarmerDetails(farmer){
 
     ${isLivestockUpdateDue(farmer)?
       '<button type="button" id="updateLivestockBtn">🐄 Livestock Update කරන්න</button>':''}
+
+    <hr>
+    <button type="button" id="deleteFarmerBtn" class="danger">
+      🗑️ ගොවි පැතිකඩ Delete කරන්න
+    </button>
   `;
+
+  const deleteBtn = document.getElementById('deleteFarmerBtn');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', () => {
+      const relatedAI = inseminations.filter(
+        r => String(r.farmerId) === String(farmer.id)
+      );
+
+      const message =
+        'ඔබට "' + farmer.name + '" ගොවි පැතිකඩ Delete කිරීමට අවශ්‍යද?\n\n' +
+        'ගොවි පැතිකඩ සහ අදාළ AI වාර්තා ' + relatedAI.length +
+        ' ක් Delete වේ.\n\n' +
+        'පැරණි Visit History එක Delete නොවේ.';
+
+      if (!confirm(message)) return;
+
+      // Queue cloud deletions before removing local records.
+      if (window.queueProfileCloudDelete) {
+        window.queueProfileCloudDelete('farmers', farmer.id);
+        relatedAI.forEach(r => {
+          window.queueProfileCloudDelete('inseminations', r.id);
+        });
+      }
+
+      farmers = farmers.filter(
+        f => String(f.id) !== String(farmer.id)
+      );
+
+      inseminations = inseminations.filter(
+        r => String(r.farmerId) !== String(farmer.id)
+      );
+
+      backupBeforeProfileChange();
+      localStorage.setItem(FARMER_KEY, JSON.stringify(farmers));
+      localStorage.setItem(AI_KEY, JSON.stringify(inseminations));
+      if (window.syncProfileData) window.syncProfileData();
+
+      editingLivestockFarmerId = null;
+      document.getElementById('farmerProfileForm').style.display = 'none';
+
+      refreshFarmerSelect();
+      refreshAiFarmerSelect();
+
+      document.getElementById('farmerSelect').value = '';
+      document.getElementById('aiFarmerSelect').value = '';
+      document.getElementById('aiRecordForm').style.display = 'none';
+      document.getElementById('aiRecordsList').innerHTML = '';
+
+      showFarmerDetails(null);
+
+      alert('ගොවි පැතිකඩ සහ අදාළ AI වාර්තා Delete කළා. පැරණි Visit History එක ආරක්ෂිතයි.');
+    });
+  }
 
   const updateBtn=document.getElementById('updateLivestockBtn');
   if(updateBtn){
