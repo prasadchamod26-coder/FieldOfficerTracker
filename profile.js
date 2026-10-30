@@ -147,13 +147,13 @@ function updateFarmerProfile(farmerId, data, shouldSave = true) {
 
   if (!farmer) throw new Error('Farmer not found');
 
-  farmer.name = data.name ?? farmer.name;
-  farmer.reg = data.reg ?? farmer.reg;
-  farmer.phone = data.phone ?? farmer.phone;
-  farmer.status = data.status ?? farmer.status;
-  farmer.village = data.village ?? farmer.village;
-  farmer.latitude = data.latitude ?? farmer.latitude;
-  farmer.longitude = data.longitude ?? farmer.longitude;
+  farmer.name = (data.name !== undefined && data.name !== null ? data.name : farmer.name);
+  farmer.reg = (data.reg !== undefined && data.reg !== null ? data.reg : farmer.reg);
+  farmer.phone = (data.phone !== undefined && data.phone !== null ? data.phone : farmer.phone);
+  farmer.status = (data.status !== undefined && data.status !== null ? data.status : farmer.status);
+  farmer.village = (data.village !== undefined && data.village !== null ? data.village : farmer.village);
+  farmer.latitude = (data.latitude !== undefined && data.latitude !== null ? data.latitude : farmer.latitude);
+  farmer.longitude = (data.longitude !== undefined && data.longitude !== null ? data.longitude : farmer.longitude);
   farmer.updatedAt = new Date().toISOString();
 
   if (shouldSave) saveFarmers();
