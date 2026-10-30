@@ -48,6 +48,7 @@ jobs:
           cp index.html app/src/main/assets/index.html
           cp cloud.js app/src/main/assets/cloud.js
           cp updater.js app/src/main/assets/updater.js
+          cp profile.js app/src/main/assets/profile.js
 
           cat > gradle.properties <<'EOF'
           android.useAndroidX=true
