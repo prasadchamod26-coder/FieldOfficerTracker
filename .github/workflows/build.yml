@@ -260,6 +260,26 @@ jobs:
 
                   webView.setWebViewClient(new WebViewClient() {
                       @Override
+                      public boolean shouldOverrideUrlLoading(
+                              WebView view, android.webkit.WebResourceRequest request) {
+                          Uri uri = request.getUrl();
+                          String host = uri.getHost();
+
+                          if ("appassets.androidplatform.net".equals(host)) {
+                              return false;
+                          }
+
+                          try {
+                              Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                              startActivity(intent);
+                          } catch (Exception e) {
+                              Toast.makeText(MainActivity.this,
+                                  "Cannot open this link", Toast.LENGTH_SHORT).show();
+                          }
+                          return true;
+                      }
+
+                      @Override
                       public android.webkit.WebResourceResponse shouldInterceptRequest(
                               WebView view, android.webkit.WebResourceRequest request) {
                           return assetLoader.shouldInterceptRequest(request.getUrl());
