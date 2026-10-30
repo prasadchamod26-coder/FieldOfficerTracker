@@ -12,9 +12,34 @@ firebase.initializeApp(firebaseConfig);
 const cloudAuth = firebase.auth();
 const cloudDB = firebase.firestore();
 
+const DELETE_KEY = 'fieldOfficerTracker_pendingDeletes_v1';
+
 let cloudReady = false;
 let cloudBusy = false;
 let cloudUser = null;
+let pendingDeletes = [];
+
+try {
+  pendingDeletes = JSON.parse(localStorage.getItem(DELETE_KEY) || '[]');
+  if (!Array.isArray(pendingDeletes)) pendingDeletes = [];
+} catch (e) {
+  pendingDeletes = [];
+}
+
+function saveDeleteQueue() {
+  localStorage.setItem(DELETE_KEY, JSON.stringify(pendingDeletes));
+}
+
+window.queueCloudDelete = function(id) {
+  id = String(id);
+
+  if (!pendingDeletes.includes(id)) {
+    pendingDeletes.push(id);
+    saveDeleteQueue();
+  }
+
+  if (cloudReady) syncCloud();
+};
 
 document.getElementById('cloudLoginBtn').onclick = async () => {
   const email = document.getElementById('cloudEmail').value.trim();
@@ -48,21 +73,48 @@ async function syncCloud() {
       .doc(cloudUser.uid)
       .collection('visits');
 
+    // 1. Cloud එකෙන් Delete කළ යුතු Records මකන්න.
+    const deletedNow = [...pendingDeletes];
+
+    if (deletedNow.length > 0) {
+      if (deletedNow.length > 450) {
+        throw new Error('Pending Delete ගණන වැඩියි.');
+      }
+
+      const deleteBatch = cloudDB.batch();
+
+      deletedNow.forEach(id => {
+        deleteBatch.delete(ref.doc(String(id)));
+      });
+
+      await deleteBatch.commit();
+
+      pendingDeletes = pendingDeletes.filter(
+        id => !deletedNow.includes(id)
+      );
+      saveDeleteQueue();
+    }
+
+    // 2. ඉතිරි Local Records Cloud එකට Save කරන්න.
+    if (visits.length > 450) {
+      throw new Error('Records ගණන වැඩියි.');
+    }
+
     const batch = cloudDB.batch();
 
     visits.forEach(v => {
       batch.set(ref.doc(String(v.id)), v);
     });
 
-
-    if (visits.length > 450) {
-      throw new Error('Records ගණන වැඩියි.');
+    if (visits.length > 0) {
+      await batch.commit();
     }
 
-    await batch.commit();
-
     document.getElementById('saveStatus').textContent =
-      'Cloud Sync සාර්ථකයි';
+      pendingDeletes.length
+        ? 'Delete Sync Pending'
+        : 'Cloud Sync සාර්ථකයි';
+
   } catch (e) {
     console.error(e);
     document.getElementById('saveStatus').textContent =
@@ -84,18 +136,48 @@ async function startCloudSync(user) {
       .doc(user.uid)
       .collection('visits');
 
+    // Delete Queue එක මුලින්ම Cloud එකට යවන්න.
+    if (pendingDeletes.length > 0) {
+      const deletedNow = [...pendingDeletes];
+
+      if (deletedNow.length > 450) {
+        throw new Error('Pending Delete ගණන වැඩියි.');
+      }
+
+      const deleteBatch = cloudDB.batch();
+
+      deletedNow.forEach(id => {
+        deleteBatch.delete(ref.doc(String(id)));
+      });
+
+      await deleteBatch.commit();
+
+      pendingDeletes = pendingDeletes.filter(
+        id => !deletedNow.includes(id)
+      );
+      saveDeleteQueue();
+    }
+
+    // ඊට පස්සේ Cloud Records ලබාගන්න.
     const snap = await ref.get();
     const merged = new Map();
 
-    snap.forEach(d => merged.set(d.id, d.data()));
-    visits.forEach(v => merged.set(String(v.id), v));
+    snap.forEach(d => {
+      merged.set(d.id, d.data());
+    });
+
+    visits.forEach(v => {
+      merged.set(String(v.id), v);
+    });
 
     visits = Array.from(merged.values());
+
     localStorage.setItem(KEY, JSON.stringify(visits));
     render();
 
     cloudReady = true;
     await syncCloud();
+
   } catch (e) {
     console.error(e);
     document.getElementById('saveStatus').textContent =
@@ -120,3 +202,12 @@ save = function() {
   localSave();
   if (cloudReady) syncCloud();
 };
+
+// Internet නැති වෙලාවක Pending Delete තබාගෙන,
+// Internet නැවත ලැබුණු විට Sync කරන්න.
+window.addEventListener('online', () => {
+  if (cloudUser) {
+    if (cloudReady) syncCloud();
+    else startCloudSync(cloudUser);
+  }
+});

@@ -179,7 +179,13 @@ function render(){
  `;
 }
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-window.removeVisit=id=>{if(confirm('Delete this visit? / මෙම සටහන මකන්නද?')){visits=visits.filter(v=>v.id!==id);save();}};
+window.removeVisit=id=>{
+ if(confirm('Delete this visit? / මෙම සටහන මකන්නද?')){
+   if(typeof queueCloudDelete==='function') queueCloudDelete(id);
+   visits=visits.filter(v=>String(v.id)!==String(id));
+   save();
+ }
+};
 $('visitForm').addEventListener('submit',e=>{
  e.preventDefault();
  const name=$('name').value.trim();
