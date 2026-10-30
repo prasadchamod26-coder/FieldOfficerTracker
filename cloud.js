@@ -57,6 +57,44 @@ document.getElementById('cloudLoginBtn').onclick = async () => {
   }
 };
 
+document.getElementById('cloudRegisterBtn').onclick = async () => {
+  const email = document.getElementById('cloudEmail').value.trim();
+  const password = document.getElementById('cloudPassword').value;
+
+  if (!email || !password) {
+    alert('Email සහ Password ඇතුළත් කරන්න.');
+    return;
+  }
+
+  if (password.length < 6) {
+    alert('Password එක අවම වශයෙන් අකුරු 6ක් විය යුතුයි.');
+    return;
+  }
+
+  try {
+    await cloudAuth.createUserWithEmailAndPassword(email, password);
+    alert('Account එක සාර්ථකව සාදාගත්තා.');
+  } catch (e) {
+    alert('Account සෑදීම අසාර්ථකයි: ' + e.message);
+  }
+};
+
+document.getElementById('cloudResetBtn').onclick = async () => {
+  const email = document.getElementById('cloudEmail').value.trim();
+
+  if (!email) {
+    alert('Password Reset කිරීමට Email එක ඇතුළත් කරන්න.');
+    return;
+  }
+
+  try {
+    await cloudAuth.sendPasswordResetEmail(email);
+    alert('Password Reset Link එක Email එකට යැව්වා.');
+  } catch (e) {
+    alert('Reset Email යැවීම අසාර්ථකයි: ' + e.message);
+  }
+};
+
 document.getElementById('cloudLogoutBtn').onclick = async () => {
   cloudReady = false;
   cloudUser = null;
@@ -223,7 +261,72 @@ window.syncProfileData = function() {
 };
 
 
+// Switch local data safely between Guest and individual accounts.
+async function activateAccountStorage(namespace) {
+  const next = namespace || 'guest';
+  const current = window.getAppStorageNamespace();
+
+  if (current === next) return;
+
+  // Save the outgoing namespace before switching.
+  localStorage.setItem('fieldOfficerTracker_v1', JSON.stringify(visits));
+  localStorage.setItem('fieldOfficerTracker_farmers_v1', JSON.stringify(farmers));
+  localStorage.setItem('fieldOfficerTracker_inseminations_v1', JSON.stringify(inseminations));
+  localStorage.setItem(DELETE_KEY, JSON.stringify(pendingDeletes));
+  localStorage.setItem(PROFILE_DELETE_KEY, JSON.stringify(profileDeleteQueues));
+
+  // Activate the new namespace.
+  window.setAppStorageNamespace(next);
+
+  function readArray(key) {
+    try {
+      const value = JSON.parse(localStorage.getItem(key) || '[]');
+      return Array.isArray(value) ? value : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  visits = readArray('fieldOfficerTracker_v1');
+  farmers = readArray('fieldOfficerTracker_farmers_v1');
+  inseminations = readArray('fieldOfficerTracker_inseminations_v1');
+  pendingDeletes = readArray(DELETE_KEY);
+
+  try {
+    profileDeleteQueues = JSON.parse(
+      localStorage.getItem(PROFILE_DELETE_KEY) ||
+      '{"farmers":[],"inseminations":[]}'
+    );
+    if (!profileDeleteQueues || typeof profileDeleteQueues !== 'object') {
+      profileDeleteQueues = { farmers: [], inseminations: [] };
+    }
+    ['farmers', 'inseminations'].forEach(k => {
+      if (!Array.isArray(profileDeleteQueues[k])) {
+        profileDeleteQueues[k] = [];
+      }
+    });
+  } catch (e) {
+    profileDeleteQueues = { farmers: [], inseminations: [] };
+  }
+
+  render();
+  if (typeof refreshFarmerSelect === 'function') refreshFarmerSelect();
+  if (typeof refreshAiFarmerSelect === 'function') refreshAiFarmerSelect();
+
+  const aiSelect = document.getElementById('aiFarmerSelect');
+  if (aiSelect) {
+    document.getElementById('aiRecordsList').innerHTML = '';
+    document.getElementById('aiRecordForm').style.display = 'none';
+  }
+
+  const farmerDetails = document.getElementById('farmerDetails');
+  if (farmerDetails) farmerDetails.innerHTML = '';
+}
+
 async function startCloudSync(user) {
+  document.getElementById('appDataArea').style.display = 'none';
+  await activateAccountStorage(user.uid);
+  document.getElementById('appDataArea').style.display = 'block';
   cloudUser = user;
   cloudReady = false;
 
@@ -293,12 +396,14 @@ async function startCloudSync(user) {
   }
 }
 
-cloudAuth.onAuthStateChanged(user => {
+cloudAuth.onAuthStateChanged(async user => {
   if (user) {
-    startCloudSync(user);
+    await startCloudSync(user);
   } else {
-    cloudUser = null;
+    document.getElementById('appDataArea').style.display = 'none';
     cloudReady = false;
+    cloudUser = null;
+    await activateAccountStorage('guest');
     document.getElementById('cloudAccount').textContent =
       'Cloud account: Not signed in';
   }

@@ -38,6 +38,7 @@ button.danger{background:#b91c1c}
 <p>ගොවිපල ක්ෂේත්‍ර නිලධාරී සටහන් | Farm Visit Records</p>
 </header>
 <main>
+<div id="appDataArea" style="display:none">
 <div class="card">
 <h3>👨‍🌾 Farmer Profiles / ගොවි පැතිකඩ</h3>
 
@@ -227,7 +228,8 @@ button.danger{background:#b91c1c}
 <p class="small" id="autoBackupStatus"></p>
 </div>
 
-<div class="card">
+</div>
+<div class="card" id="cloudLoginCard">
 <h3>ℹ️ Data & Sync / දත්ත තත්ත්වය</h3>
 <p class="small">දත්ත දුරකථනයේ Save වන අතර Login වූ විට Firebase Cloud එකට Sync වේ.</p>
 <label>Firebase Email</label>
@@ -236,6 +238,10 @@ button.danger{background:#b91c1c}
 <input id="cloudPassword" type="password" autocomplete="current-password" placeholder="Firebase password">
 <div class="row">
 <button type="button" id="cloudLoginBtn">Login / Sync</button>
+<button type="button" id="cloudRegisterBtn">Create Account</button>
+</div>
+<div class="row">
+<button type="button" class="secondary" id="cloudResetBtn">Forgot Password?</button>
 <button type="button" class="secondary" id="cloudLogoutBtn">Logout</button>
 </div>
 <p class="small" id="cloudAccount">Cloud account: Not signed in</p>
@@ -255,6 +261,61 @@ window.addEventListener('unhandledrejection', function(e) {
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
+// Account-specific local storage (Guest data remains in legacy keys).
+(function () {
+  const appDataKeys = new Set([
+    'fieldOfficerTracker_v1',
+    'fieldOfficerTracker_farmers_v1',
+    'fieldOfficerTracker_inseminations_v1',
+    'fieldOfficerTracker_autoBackup_v1',
+    'fieldOfficerTracker_pendingDeletes_v1',
+    'fieldOfficerTracker_profileDeletes_v1'
+  ]);
+
+  let activeNamespace = 'guest';
+  const storageProto = Storage.prototype;
+  const nativeGet = storageProto.getItem;
+  const nativeSet = storageProto.setItem;
+  const nativeRemove = storageProto.removeItem;
+
+  function physicalKey(key) {
+    key = String(key);
+    if (!appDataKeys.has(key) || activeNamespace === 'guest') return key;
+    return 'fieldOfficerTracker_account_' + activeNamespace + '_' + key;
+  }
+
+  Object.defineProperty(storageProto, 'getItem', {
+    configurable: true, writable: true,
+    value: function (key) {
+      return nativeGet.call(this, physicalKey(key));
+    }
+  });
+
+  Object.defineProperty(storageProto, 'setItem', {
+    configurable: true, writable: true,
+    value: function (key, value) {
+      return nativeSet.call(this, physicalKey(key), value);
+    }
+  });
+
+  Object.defineProperty(storageProto, 'removeItem', {
+    configurable: true, writable: true,
+    value: function (key) {
+      return nativeRemove.call(this, physicalKey(key));
+    }
+  });
+
+  window.setAppStorageNamespace = function (namespace) {
+    activeNamespace = namespace && namespace !== 'guest'
+      ? String(namespace).replace(/[^a-zA-Z0-9_-]/g, '_')
+      : 'guest';
+  };
+
+  window.getAppStorageNamespace = function () {
+    return activeNamespace;
+  };
+})();
+
 const KEY='fieldOfficerTracker_v1';
 const AUTO_BACKUP_KEY='fieldOfficerTracker_autoBackup_v1';
 let visits=[];
