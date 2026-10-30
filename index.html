@@ -30,7 +30,21 @@ button.danger{background:#b91c1c}
 .small{font-size:13px;color:#526157;line-height:1.6}
 .tag{display:inline-block;background:#dcfce7;padding:4px 8px;border-radius:6px;font-size:12px}
 .empty{color:#64748b;text-align:center;padding:18px}
-</style>
+
+#authArea{max-width:430px;margin:35px auto;padding:0 8px}
+.auth-card{background:white;border-radius:20px;padding:25px 22px;box-shadow:0 8px 28px #00000012}
+.auth-card h2{text-align:center;color:#14532d;margin:8px 0}
+.auth-icon{text-align:center;font-size:42px}
+.auth-subtitle{text-align:center;color:#64748b;font-size:14px;margin:8px 0 22px}
+.auth-card input{margin-bottom:5px;background:#f8faf9}
+.auth-card button{min-height:46px}
+.auth-card .secondary{background:#334155}
+.text-button,.back-button{background:transparent;color:#166534;margin-top:8px}
+.back-button{width:auto;padding:5px 0}
+.auth-divider{text-align:center;color:#94a3b8;font-size:13px;margin:12px}
+.auth-message{margin-top:12px;text-align:center;overflow-wrap:anywhere}
+.verify-email{text-align:center;font-weight:bold;color:#14532d;overflow-wrap:anywhere}
+\n</style>
 </head>
 <body>
 <header>
@@ -229,23 +243,53 @@ button.danger{background:#b91c1c}
 </div>
 
 </div>
-<div class="card" id="cloudLoginCard">
-<h3>ℹ️ Data & Sync / දත්ත තත්ත්වය</h3>
-<p class="small">දත්ත දුරකථනයේ Save වන අතර Login වූ විට Firebase Cloud එකට Sync වේ.</p>
-<label>Firebase Email</label>
-<input id="cloudEmail" type="email" autocomplete="username" placeholder="Firebase account email">
-<label>Firebase Password</label>
-<input id="cloudPassword" type="password" autocomplete="current-password" placeholder="Firebase password">
-<div class="row">
-<button type="button" id="cloudLoginBtn">Login / Sync</button>
-<button type="button" id="cloudRegisterBtn">Create Account</button>
+<section id="authArea">
+<div class="auth-card" id="loginScreen">
+<div class="auth-icon">🌱</div>
+<h2>Field Officer Tracker</h2>
+<p class="auth-subtitle">ඔබගේ ගිණුමට පිවිසෙන්න</p>
+<label>Email Address</label>
+<input id="cloudEmail" type="email" autocomplete="username" placeholder="ඔබගේ Email ලිපිනය">
+<label>Password</label>
+<input id="cloudPassword" type="password" autocomplete="current-password" placeholder="Password එක">
+<button type="button" id="cloudLoginBtn">Login / පිවිසෙන්න</button>
+<button type="button" class="text-button" id="cloudResetBtn">Forgot Password?</button>
+<div class="auth-divider"><span>නැතිනම්</span></div>
+<button type="button" class="secondary" id="showRegisterBtn">Create New Account / ගිණුමක් සාදන්න</button>
+<p class="small auth-message" id="authMessage"></p>
 </div>
-<div class="row">
-<button type="button" class="secondary" id="cloudResetBtn">Forgot Password?</button>
-<button type="button" class="secondary" id="cloudLogoutBtn">Logout</button>
+
+<div class="auth-card" id="registerScreen" style="display:none">
+<button type="button" class="back-button" id="backToLoginBtn">← Login වෙත</button>
+<div class="auth-icon">👨‍🌾</div>
+<h2>නව ගිණුමක් සාදන්න</h2>
+<p class="auth-subtitle">ඔබගේ තොරතුරු ඇතුළත් කරන්න</p>
+<label>සම්පූර්ණ නම / Full Name</label>
+<input id="registerName" type="text" autocomplete="name" placeholder="ඔබගේ සම්පූර්ණ නම">
+<label>Email Address</label>
+<input id="registerEmail" type="email" autocomplete="email" placeholder="Email ලිපිනය">
+<label>Password</label>
+<input id="registerPassword" type="password" autocomplete="new-password" placeholder="අවම අකුරු 6ක්">
+<label>Password නැවත ඇතුළත් කරන්න</label>
+<input id="registerPasswordConfirm" type="password" autocomplete="new-password" placeholder="Password එක නැවත ඇතුළත් කරන්න">
+<button type="button" id="cloudRegisterBtn">Create Account / ගිණුම සාදන්න</button>
+<p class="small auth-message" id="registerMessage"></p>
 </div>
+
+<div class="auth-card" id="verifyScreen" style="display:none">
+<div class="auth-icon">✉️</div>
+<h2>Email Verify කරන්න</h2>
+<p class="auth-subtitle">ඔබගේ Email එකට Verification Link එකක් යවා ඇත. Email එක විවෘත කර එහි ඇති Link එක ඔබන්න.</p>
+<p id="verifyEmailText" class="verify-email"></p>
+<button type="button" id="backFromVerifyBtn" class="secondary">Login වෙත ආපසු යන්න</button>
+<p class="small auth-message" id="verifyMessage"></p>
+</div>
+</section>
+
+<div class="card" id="cloudLoginCard" style="display:none">
 <p class="small" id="cloudAccount">Cloud account: Not signed in</p>
 <p class="small" id="saveStatus">Local storage / උපාංගයේ දත්ත</p>
+<button type="button" class="secondary" id="cloudLogoutBtn">Logout</button>
 </div>
 </main>
 
