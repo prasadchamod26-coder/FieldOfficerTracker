@@ -63,6 +63,43 @@ document.getElementById('cloudLogoutBtn').onclick = async () => {
   await cloudAuth.signOut();
 };
 
+
+// Farmer Profiles සහ AI Records Cloud Sync
+async function syncProfileCollection(collectionName, localItems, storageKey) {
+  const ref = cloudDB.collection('users')
+    .doc(cloudUser.uid)
+    .collection(collectionName);
+
+  const snap = await ref.get();
+  const merged = new Map();
+
+  snap.forEach(doc => {
+    merged.set(doc.id, doc.data());
+  });
+
+  (Array.isArray(localItems) ? localItems : []).forEach(item => {
+    merged.set(String(item.id), item);
+  });
+
+  const items = Array.from(merged.values());
+
+  if (items.length > 450) {
+    throw new Error(collectionName + ' records ගණන වැඩියි.');
+  }
+
+  const batch = cloudDB.batch();
+
+  items.forEach(item => {
+    batch.set(ref.doc(String(item.id)), item);
+  });
+
+  if (items.length > 0) await batch.commit();
+
+  localStorage.setItem(storageKey, JSON.stringify(items));
+
+  return items;
+}
+
 async function syncCloud() {
   if (!cloudUser || !cloudReady || cloudBusy) return;
 
@@ -110,6 +147,15 @@ async function syncCloud() {
       await batch.commit();
     }
 
+    farmers = await syncProfileCollection(
+      'farmers', farmers, 'fieldOfficerTracker_farmers_v1'
+    );
+
+    inseminations = await syncProfileCollection(
+      'inseminations', inseminations,
+      'fieldOfficerTracker_inseminations_v1'
+    );
+
     document.getElementById('saveStatus').textContent =
       pendingDeletes.length
         ? 'Delete Sync Pending'
@@ -123,6 +169,13 @@ async function syncCloud() {
     cloudBusy = false;
   }
 }
+
+
+// Profile සහ AI දත්ත Save කළ විට Cloud Sync ආරම්භ කිරීම
+window.syncProfileData = function() {
+  if (cloudReady && cloudUser) syncCloud();
+};
+
 
 async function startCloudSync(user) {
   cloudUser = user;
@@ -174,6 +227,15 @@ async function startCloudSync(user) {
 
     localStorage.setItem(KEY, JSON.stringify(visits));
     render();
+
+    farmers = await syncProfileCollection(
+      'farmers', farmers, 'fieldOfficerTracker_farmers_v1'
+    );
+
+    inseminations = await syncProfileCollection(
+      'inseminations', inseminations,
+      'fieldOfficerTracker_inseminations_v1'
+    );
 
     cloudReady = true;
     await syncCloud();

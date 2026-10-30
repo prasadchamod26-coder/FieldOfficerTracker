@@ -39,6 +39,113 @@ button.danger{background:#b91c1c}
 </header>
 <main>
 <div class="card">
+<h3>👨‍🌾 Farmer Profiles / ගොවි පැතිකඩ</h3>
+
+<label>ගොවියෙකු තෝරන්න</label>
+<select id="farmerSelect">
+<option value="">-- ගොවියෙකු තෝරන්න --</option>
+</select>
+
+<button type="button" id="newFarmerBtn">➕ නව ගොවියෙක් එකතු කරන්න</button>
+
+<div id="farmerProfileForm" style="display:none">
+<h3>ගොවි විස්තර</h3>
+
+<label>ගොවි නම *</label>
+<input id="profileName" maxlength="100">
+
+<label>ලියාපදිංචි අංකය</label>
+<input id="profileReg" maxlength="60">
+
+<label>දුරකථන අංකය</label>
+<input id="profilePhone" type="tel">
+
+<label>ලියාපදිංචි තත්ත්වය</label>
+<select id="profileStatus">
+<option value="registered">ලියාපදිංචි</option>
+<option value="new">නව ගොවියෙක්</option>
+</select>
+
+<label>ගම / ප්‍රදේශය</label>
+<input id="profileVillage">
+
+<hr>
+<h3>🐄 සත්ව තොරතුරු</h3>
+<p class="small">ගැහැණු + පිරිමි + පැටවුන් = මුළු සතුන්</p>
+
+<div id="livestockInputs"></div>
+
+<h3>🥛 කිරි නිෂ්පාදනය</h3>
+<label>දිනකට කිරි දෙන සතුන් ගණන</label>
+<input id="milkAnimals" type="number" min="0">
+
+<label>දිනකට මුළු කිරි ප්‍රමාණය (ලීටර්)</label>
+<input id="milkLitres" type="number" min="0" step="0.1">
+
+<h3>🥚 කුකුළු නිෂ්පාදනය</h3>
+<label>බිත්තර දමන කිකිළියන් ගණන</label>
+<input id="layingHens" type="number" min="0">
+
+<label>දිනකට බිත්තර ගණන</label>
+<input id="dailyEggs" type="number" min="0">
+
+<h3>🥩 ඌරු මස් නිෂ්පාදනය</h3>
+<label>මාසයක මුළු මස් ප්‍රමාණය (kg)</label>
+<input id="monthlyPork" type="number" min="0" step="0.1">
+
+<button type="button" id="saveFarmerBtn">💾 ගොවි පැතිකඩ Save කරන්න</button>
+</div>
+
+<div id="farmerDetails"></div>
+</div>
+<div class="card">
+
+<div class="card">
+<h3>🐄 කෘත්‍රිම සිංචන වාර්තා / AI Records</h3>
+
+<label>ගොවියා තෝරන්න</label>
+<select id="aiFarmerSelect">
+<option value="">-- ගොවියෙකු තෝරන්න --</option>
+</select>
+
+<div id="aiRecordForm" style="display:none">
+
+<label>සත්ව වර්ගය</label>
+<select id="aiSpecies">
+<option value="goats">එළුවන්</option>
+<option value="cattle">ගවයන්</option>
+<option value="buffalo">මී ගවයන්</option>
+<option value="other">වෙනත්</option>
+</select>
+
+<label>සත්ව අංකය / Tag Number</label>
+<input id="aiAnimalTag" maxlength="60">
+
+<label>කෘත්‍රිම සිංචන දිනය</label>
+<input id="aiDate" type="date">
+
+<label>වීර්ය මාත්‍රා අංකය / Semen Straw No.</label>
+<input id="aiStrawNo" maxlength="100">
+
+<label>සිංචනය කළ නිලධාරියා</label>
+<input id="aiOfficer" maxlength="100">
+
+<label>ගැබ් පරීක්ෂා කරන දිනය</label>
+<input id="aiCheckDate" type="date">
+
+<label>පරීක්ෂණ ප්‍රතිඵලය</label>
+<select id="aiResult">
+<option value="not_checked">තවම පරීක්ෂා කර නැත</option>
+<option value="pregnant">ගැබ්ගෙන ඇත</option>
+<option value="not_pregnant">ගැබ්ගෙන නැත</option>
+</select>
+
+<button type="button" id="saveAiRecordBtn">💾 AI වාර්තාව Save කරන්න</button>
+</div>
+
+<div id="aiRecordsList"></div>
+</div>
+
 <h3>📊 Dashboard / සාරාංශය</h3>
 <div class="stats">
 <div class="stat"><strong id="today">0</strong>අද පරීක්ෂණ / Today</div>
@@ -51,6 +158,11 @@ button.danger{background:#b91c1c}
 <div class="card">
 <h3>➕ Add Farm Visit / නව පරීක්ෂණයක්</h3>
 <form id="visitForm">
+<label>ගොවි මහතා තෝරන්න / Select Farmer Profile</label>
+<select id="visitFarmerSelect">
+<option value="">-- ගොවියෙක් තෝරන්න / Select Farmer --</option>
+</select>
+
 <label>ගොවි මහතාගේ නම / Farmer Name *</label>
 <input id="name" required maxlength="100" placeholder="ගොවි මහතාගේ නම">
 
@@ -154,8 +266,17 @@ function save(){
     if(Array.isArray(oldVisits)){
      let backups=JSON.parse(localStorage.getItem(AUTO_BACKUP_KEY)||'[]');
      if(!Array.isArray(backups))backups=[];
+
+     const oldFarmers=JSON.parse(localStorage.getItem('fieldOfficerTracker_farmers_v1')||'[]');
+     const oldAI=JSON.parse(localStorage.getItem('fieldOfficerTracker_inseminations_v1')||'[]');
+
      if(!backups.length || JSON.stringify(backups[0].visits)!==oldData){
-      backups.unshift({savedAt:new Date().toISOString(),visits:oldVisits});
+      backups.unshift({
+       savedAt:new Date().toISOString(),
+       visits:oldVisits,
+       farmers:Array.isArray(oldFarmers)?oldFarmers:[],
+       inseminations:Array.isArray(oldAI)?oldAI:[]
+      });
      }
      localStorage.setItem(AUTO_BACKUP_KEY,JSON.stringify(backups.slice(0,3)));
     }
@@ -230,6 +351,32 @@ $('gpsBtn').onclick=()=>{
  },{enableHighAccuracy:true,timeout:20000,maximumAge:0});
 };
 
+// Auto-fill visit form from selected farmer profile
+$('visitFarmerSelect').addEventListener('change',()=>{
+ const farmerId=$('visitFarmerSelect').value;
+ const farmer=Array.isArray(farmers)?farmers.find(f=>String(f.id)===farmerId):null;
+
+ if(farmer){
+  $('name').value=farmer.name||'';
+  $('reg').value=farmer.reg||'';
+  $('phone').value=farmer.phone||'';
+  $('status').value=farmer.status||'registered';
+  $('village').value=farmer.village||'';
+
+  ['name','reg','phone','village'].forEach(id=>{
+   $(id).readOnly=true;
+  });
+  $('status').disabled=true;
+ }else{
+  ['name','reg','phone','village'].forEach(id=>{
+   $(id).value='';
+   $(id).readOnly=false;
+  });
+  $('status').disabled=false;
+  $('status').value='registered';
+ }
+});
+
 $('visitForm').addEventListener('submit',e=>{
  e.preventDefault();
  const name=$('name').value.trim();
@@ -237,10 +384,13 @@ $('visitForm').addEventListener('submit',e=>{
  const status=$('status').value;
  const reg=$('reg').value.trim();
  const phone=$('phone').value.trim();
+ const farmerId=$('visitFarmerSelect').value||'';
  if(status==='registered'&&!reg&&!confirm('Registration number is empty. Save as registered anyway?'))return;
- visits.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),name,reg,phone,status,date:$('date').value,village:$('village').value.trim(),activity:$('activity').value,notes:$('notes').value.trim(),latitude:$('latitude').value,longitude:$('longitude').value});
+ visits.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),farmerId,name,reg,phone,status,date:$('date').value,village:$('village').value.trim(),activity:$('activity').value,notes:$('notes').value.trim(),latitude:$('latitude').value,longitude:$('longitude').value});
  save();
  $('visitForm').reset();
+ ['name','reg','phone','village'].forEach(id=>$(id).readOnly=false);
+ $('status').disabled=false;
  $('gpsStatus').textContent='GPS Location ලබාගෙන නැත.';
  $('date').value=isoDate(new Date());
  alert('Visit saved / සටහන Save කළා');
@@ -309,13 +459,51 @@ $('pdfBtn').onclick=()=>{
  }
 };
 
-$('backupBtn').onclick=()=>download('FieldOfficerBackup.json',JSON.stringify(visits,null,2),'application/json');
+$('backupBtn').onclick=()=>{
+ const bundle={
+  version:2,
+  savedAt:new Date().toISOString(),
+  visits:visits,
+  farmers:JSON.parse(localStorage.getItem('fieldOfficerTracker_farmers_v1')||'[]'),
+  inseminations:JSON.parse(localStorage.getItem('fieldOfficerTracker_inseminations_v1')||'[]')
+ };
+ download('FieldOfficerBackup.json',JSON.stringify(bundle,null,2),'application/json');
+};
+
 $('restoreFile').addEventListener('change',async e=>{
  const file=e.target.files[0];if(!file)return;
  try{
   const data=JSON.parse(await file.text());
-  if(!Array.isArray(data)||!data.every(v=>v&&v.name&&v.date&&v.activity))throw Error('Invalid');
-  if(confirm('Replace current records with backup? / දැනට ඇති දත්ත වෙනුවට Backup දාන්නද?')){visits=data;save();alert('Backup restored');}
+  const isOldArray=Array.isArray(data);
+  const backupVisits=isOldArray?data:data.visits;
+  const backupFarmers=isOldArray?null:data.farmers;
+  const backupAI=isOldArray?null:data.inseminations;
+
+  if(!Array.isArray(backupVisits)||!backupVisits.every(v=>v&&v.name&&v.date&&v.activity))throw Error('Invalid');
+  if(!isOldArray&&(!Array.isArray(backupFarmers)||!Array.isArray(backupAI)))throw Error('Invalid');
+
+  if(confirm('Backup දත්ත Restore කරන්නද? / Restore backup data?')){
+   visits=backupVisits;
+   save();
+
+   if(!isOldArray){
+    localStorage.setItem('fieldOfficerTracker_farmers_v1',JSON.stringify(backupFarmers));
+    localStorage.setItem('fieldOfficerTracker_inseminations_v1',JSON.stringify(backupAI));
+    if(typeof farmers!=='undefined')farmers=backupFarmers;
+    if(typeof inseminations!=='undefined')inseminations=backupAI;
+    if(typeof refreshFarmerSelect==='function')refreshFarmerSelect();
+    if(typeof refreshAiFarmerSelect==='function')refreshAiFarmerSelect();
+    if(typeof showFarmerDetails==='function'){
+      const select=document.getElementById('farmerSelect');
+      if(select && select.value){
+        const restoredFarmer=farmers.find(f=>String(f.id)===select.value);
+        showFarmerDetails(restoredFarmer);
+      }
+    }
+    if(window.syncProfileData)window.syncProfileData();
+   }
+   alert(isOldArray?'පරණ Backup එක Restore කළා.':'සියලු Backup දත්ත Restore කළා.');
+  }
  }catch(err){alert('Invalid backup file / Backup ගොනුව වැරදියි');}
  e.target.value='';
 });
@@ -337,11 +525,39 @@ $('autoRestoreBtn').onclick=()=>{
   if(!confirm('දැනට ඇති දත්ත වෙනුවට මෙම Backup එක Restore කරන්නද?'))return;
   const current=JSON.parse(localStorage.getItem(KEY)||'[]');
   if(Array.isArray(current)){
-   const updated=[{savedAt:new Date().toISOString(),visits:current},...backups].slice(0,3);
+   const updated=[{
+    savedAt:new Date().toISOString(),
+    visits:current,
+    farmers:JSON.parse(localStorage.getItem('fieldOfficerTracker_farmers_v1')||'[]'),
+    inseminations:JSON.parse(localStorage.getItem('fieldOfficerTracker_inseminations_v1')||'[]')
+   },...backups].slice(0,3);
    localStorage.setItem(AUTO_BACKUP_KEY,JSON.stringify(updated));
   }
-  visits=backups[index].visits;
+  const selected=backups[index];
+  visits=selected.visits;
   save();
+
+  if(Array.isArray(selected.farmers)){
+   localStorage.setItem('fieldOfficerTracker_farmers_v1',JSON.stringify(selected.farmers));
+   if(typeof farmers!=='undefined')farmers=selected.farmers;
+   if(typeof refreshFarmerSelect==='function')refreshFarmerSelect();
+  }
+
+  if(Array.isArray(selected.inseminations)){
+   localStorage.setItem('fieldOfficerTracker_inseminations_v1',JSON.stringify(selected.inseminations));
+   if(typeof inseminations!=='undefined')inseminations=selected.inseminations;
+   if(typeof refreshAiFarmerSelect==='function')refreshAiFarmerSelect();
+  }
+
+  if(typeof showFarmerDetails==='function'){
+   const select=document.getElementById('farmerSelect');
+   if(select && select.value){
+    const restoredFarmer=farmers.find(f=>String(f.id)===select.value);
+    showFarmerDetails(restoredFarmer);
+   }
+  }
+  if(window.syncProfileData)window.syncProfileData();
+
   alert('Auto Backup Restore සාර්ථකයි.');
  }catch(e){alert('Auto Backup Restore කිරීමේදී දෝෂයක් ඇතිවුණා.');}
 };
@@ -352,5 +568,6 @@ render();
 
 <script src="cloud.js"></script>
 <script src="updater.js"></script>
+<script src="profile.js"></script>
 </body>
 </html>
