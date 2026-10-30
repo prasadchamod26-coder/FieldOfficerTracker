@@ -7,7 +7,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -136,7 +136,7 @@ jobs:
 
           cat > app/src/main/java/com/fieldofficer/tracker/MainActivity.java <<'EOF'
           package com.fieldofficer.tracker;
-          
+
           import android.app.Activity;
           import android.app.AlertDialog;
           import android.os.Bundle;
@@ -158,12 +158,12 @@ jobs:
           import android.webkit.SslErrorHandler;
           import java.io.OutputStream;
           import java.nio.charset.StandardCharsets;
-          
+
           public class MainActivity extends Activity {
               private static final int CREATE_FILE = 1001;
               private String pendingContent = "";
               private WebView printWebView;
-          
+
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
@@ -171,9 +171,9 @@ jobs:
                   WebSettings settings = webView.getSettings();
                   settings.setJavaScriptEnabled(true);
                   settings.setDomStorageEnabled(true);
-          
+
                   webView.addJavascriptInterface(new DownloadBridge(), "AndroidBridge");
-          
+
                   webView.setWebChromeClient(new WebChromeClient() {
                       @Override
                       public boolean onJsAlert(WebView view, String url, String message, JsResult result) {
@@ -184,7 +184,7 @@ jobs:
                               .show();
                           return true;
                       }
-          
+
                       @Override
                       public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
                           new AlertDialog.Builder(MainActivity.this)
@@ -196,7 +196,7 @@ jobs:
                           return true;
                       }
                   });
-          
+
                   WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
                       .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
                       .build();
@@ -212,7 +212,7 @@ jobs:
                   setContentView(webView);
                   webView.loadUrl("https://appassets.androidplatform.net/assets/index.html");
               }
-          
+
               private class DownloadBridge {
                   @JavascriptInterface
                   public void printPdf(String html) {
@@ -249,7 +249,7 @@ jobs:
                       });
                   }
               }
-          
+
               @Override
               protected void onActivityResult(int requestCode, int resultCode, Intent data) {
                   super.onActivityResult(requestCode, resultCode, data);
@@ -268,6 +268,11 @@ jobs:
           }
           EOF
 
+      - name: Set app version
+        run: |
+          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/" app/build.gradle
+          sed -i "s/versionName '1.0'/versionName '1.${{ github.run_number }}'/" app/build.gradle
+
       - name: Decode signing keystore
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/fieldofficer-release.jks"
@@ -285,3 +290,11 @@ jobs:
         with:
           name: FieldOfficerTracker-APK
           path: app/build/outputs/apk/release/app-release.apk
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.${{ github.run_number }}
+          name: Field Officer Tracker v1.${{ github.run_number }}
+          generate_release_notes: true
+          files: app/build/outputs/apk/release/app-release.apk
