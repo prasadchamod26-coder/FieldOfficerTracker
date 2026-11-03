@@ -53,6 +53,13 @@ button.danger{background:#b91c1c}
 </header>
 <main>
 <div id="appDataArea" style="display:none">
+
+<div class="row" id="appNavigation">
+  <button type="button" id="mainScreenBtn">🏠 ප්‍රධාන තිරය</button>
+  <button type="button" id="areaDashboardBtn" class="secondary">📊 ප්‍රදේශ සංඛ්‍යාලේඛන</button>
+</div>
+
+<div id="mainAppScreen">
 <div class="card">
 <h3>👨‍🌾 Farmer Profiles / ගොවි පැතිකඩ</h3>
 
@@ -91,11 +98,27 @@ button.danger{background:#b91c1c}
 <div id="livestockInputs"></div>
 
 <h3>🥛 කිරි නිෂ්පාදනය</h3>
-<label>දිනකට කිරි දෙන සතුන් ගණන</label>
+
+<h4>🐄 එළ ගව කිරි</h4>
+<label>දිනකට කිරි දෙන එළ ගවයන් ගණන</label>
 <input id="milkAnimals" type="number" min="0">
 
-<label>දිනකට මුළු කිරි ප්‍රමාණය (ලීටර්)</label>
+<label>දිනකට එළ ගව කිරි (ලීටර්)</label>
 <input id="milkLitres" type="number" min="0" step="0.1">
+
+<h4>🐃 මී ගව කිරි</h4>
+<label>දිනකට කිරි දෙන මී ගවයන් ගණන</label>
+<input id="buffaloMilkAnimals" type="number" min="0">
+
+<label>දිනකට මී ගව කිරි (ලීටර්)</label>
+<input id="buffaloMilkLitres" type="number" min="0" step="0.1">
+
+<h4>🐐 එළු කිරි</h4>
+<label>දිනකට කිරි දෙන එළුවන් ගණන</label>
+<input id="goatMilkAnimals" type="number" min="0">
+
+<label>දිනකට එළු කිරි (ලීටර්)</label>
+<input id="goatMilkLitres" type="number" min="0" step="0.1">
 
 <h3>🥚 කුකුළු නිෂ්පාදනය</h3>
 <label>බිත්තර දමන කිකිළියන් ගණන</label>
@@ -240,6 +263,44 @@ button.danger{background:#b91c1c}
 <input id="restoreFile" type="file" accept=".json,application/json">
 <button type="button" id="autoRestoreBtn" class="secondary">♻️ Restore Auto Backup / ස්වයංක්‍රීය Backup නැවත ලබාගන්න</button>
 <p class="small" id="autoBackupStatus"></p>
+</div>
+</div>
+
+<div id="areaDashboardScreen" style="display:none">
+  <div class="card">
+    <h3>📊 ප්‍රදේශ අනුව සත්ත්ව හා නිෂ්පාදන සංඛ්‍යාලේඛන</h3>
+    <label>ගම / ප්‍රදේශය තෝරන්න</label>
+    <select id="areaVillageFilter">
+      <option value="__ALL__">සියලු ප්‍රදේශ</option>
+    </select>
+    <p class="small" id="areaFarmerCount">ගොවීන්: 0</p>
+  </div>
+
+  <div class="card">
+    <h3>🐄 සත්ත්ව ජනගහනය</h3>
+    <div class="stats" id="areaAnimalSummary"></div>
+    <div id="areaAnimalDetails"></div>
+  </div>
+
+  <div class="card">
+    <h3>🥛 මාසික කිරි නිෂ්පාදනය</h3>
+    <div id="areaMilkProduction"></div>
+  </div>
+
+  <div class="card">
+    <h3>🥚 බිත්තර නිෂ්පාදනය</h3>
+    <div id="areaEggProduction"></div>
+  </div>
+
+  <div class="card">
+    <h3>🥩 ඌරු මස් නිෂ්පාදනය</h3>
+    <div id="areaPorkProduction"></div>
+  </div>
+
+  <div class="card">
+    <h3>🏆 සාරාංශය</h3>
+    <div id="areaHighlights"></div>
+  </div>
 </div>
 
 </div>

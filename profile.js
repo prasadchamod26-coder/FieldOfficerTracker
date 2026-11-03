@@ -58,6 +58,9 @@ function backupBeforeProfileChange() {
 function saveFarmers() {
   backupBeforeProfileChange();
   localStorage.setItem(FARMER_KEY, JSON.stringify(farmers));
+  if (typeof refreshAreaStatisticsDashboard === 'function') {
+    refreshAreaStatisticsDashboard();
+  }
   if (window.syncProfileData) window.syncProfileData();
 }
 
@@ -192,39 +195,47 @@ const livestockTypes = [
   {id:'other',name:'වෙනත් සතුන්'}
 ];
 
+let selectedLivestockTypes = [];
+
 function renderLivestockInputs(){
   const box=document.getElementById('livestockInputs');
   if(!box)return;
 
-  box.innerHTML=livestockTypes.map(a=>`
-    <div class="card" style="background:#f8faf8">
-      <h3>${a.name}</h3>
+  box.innerHTML=`
+    <h3>සත්ව වර්ග තෝරන්න</h3>
+    <div id="livestockTypeChoices" class="card"></div>
+    <div id="livestockTypeForms"></div>
+  `;
 
+  const choices=document.getElementById('livestockTypeChoices');
+  choices.innerHTML=livestockTypes.map(a=>`
+    <label style="display:flex;align-items:center;gap:10px">
+      <input type="checkbox" id="select_${a.id}" value="${a.id}"
+        style="width:auto">
+      ${a.name}
+    </label>
+  `).join('');
+
+  const forms=document.getElementById('livestockTypeForms');
+  forms.innerHTML=livestockTypes.map(a=>`
+    <div class="card" id="form_${a.id}" style="display:none;background:#f8faf8">
+      <h3>${a.name}</h3>
       <label>ගැහැණු සතුන්</label>
       <input type="number" min="0" id="${a.id}_female" value="0">
-
       <label>පිරිමි සතුන්</label>
       <input type="number" min="0" id="${a.id}_male" value="0">
-
       <label>ගැහැණු පැටවුන්</label>
       <input type="number" min="0" id="${a.id}_femaleYoung" value="0">
-
       <label>පිරිමි පැටවුන්</label>
       <input type="number" min="0" id="${a.id}_maleYoung" value="0">
-
       <p>මුළු පැටවුන් ගණන: <b id="${a.id}_youngTotal">0</b></p>
-
-      <p>මුළු සතුන් ගණන:
-      <b id="${a.id}_total">0</b></p>
-
+      <p>මුළු සතුන් ගණන: <b id="${a.id}_total">0</b></p>
       ${a.breeding?`
         <hr>
         <label>පළමු පැටවා බිහිකළ සතුන්</label>
         <input type="number" min="0" id="${a.id}_firstCalved" value="0">
-
         <label>තවම පැටවෙකු නොලැබූ, ගැබ් ගැනීමට සුදුසු සතුන්</label>
         <input type="number" min="0" id="${a.id}_eligible" value="0">
-
         <label>ජීවිත කාලය තුළ පැටවුන් 4ක් හෝ වැඩි ගණනක් ලැබූ සතුන්</label>
         <input type="number" min="0" id="${a.id}_multipleBirths" value="0">
       `:''}
@@ -232,10 +243,32 @@ function renderLivestockInputs(){
   `).join('');
 
   livestockTypes.forEach(a=>{
+    const checkbox=document.getElementById('select_'+a.id);
+    checkbox.addEventListener('change',()=>{
+      const form=document.getElementById('form_'+a.id);
+      form.style.display=checkbox.checked?'block':'none';
+      if(checkbox.checked && !selectedLivestockTypes.includes(a.id)){
+        selectedLivestockTypes.push(a.id);
+      }else if(!checkbox.checked){
+        selectedLivestockTypes=selectedLivestockTypes.filter(id=>id!==a.id);
+      }
+    });
+
     ['female','male','femaleYoung','maleYoung'].forEach(type=>{
       document.getElementById(a.id+'_'+type)
         .addEventListener('input',()=>updateAnimalTotal(a.id));
     });
+  });
+}
+
+function setSelectedLivestockTypes(types=[]){
+  selectedLivestockTypes=[...new Set(types)];
+  livestockTypes.forEach(a=>{
+    const checkbox=document.getElementById('select_'+a.id);
+    const form=document.getElementById('form_'+a.id);
+    if(!checkbox || !form)return;
+    checkbox.checked=selectedLivestockTypes.includes(a.id);
+    form.style.display=checkbox.checked?'block':'none';
   });
 }
 
@@ -247,22 +280,27 @@ function updateAnimalTotal(id){
   const young=femaleYoung+maleYoung;
 
   document.getElementById(id+'_youngTotal').textContent=young;
-  document.getElementById(id+'_total').textContent=
-    female+male+young;
+  document.getElementById(id+'_total').textContent=female+male+young;
 }
 
-function collectLivestockData(){
-  const data={};
+function collectLivestockData(existingLivestock={}){
+  const data=JSON.parse(JSON.stringify(existingLivestock||{}));
 
   livestockTypes.forEach(a=>{
+    if(!data[a.id])data[a.id]={};
+
+    if(!selectedLivestockTypes.includes(a.id))return;
+
+    const old=data[a.id];
     const animal={
+      ...old,
       female:Number(document.getElementById(a.id+'_female').value||0),
       male:Number(document.getElementById(a.id+'_male').value||0),
       femaleYoung:Number(document.getElementById(a.id+'_femaleYoung').value||0),
-      maleYoung:Number(document.getElementById(a.id+'_maleYoung').value||0),
-      young:0
+      maleYoung:Number(document.getElementById(a.id+'_maleYoung').value||0)
     };
 
+    // පැරණි young අගය වෙනස් නොකර ආරක්ෂා කරයි.
     animal.total=calculateAnimalTotal(animal);
 
     if(a.breeding){
@@ -274,8 +312,14 @@ function collectLivestockData(){
     data[a.id]=animal;
   });
 
+  data.selectedSpecies=[...selectedLivestockTypes];
+
   data.milkAnimals=Number(document.getElementById('milkAnimals').value||0);
   data.milkLitres=Number(document.getElementById('milkLitres').value||0);
+  data.buffaloMilkAnimals=Number(document.getElementById('buffaloMilkAnimals').value||0);
+  data.buffaloMilkLitres=Number(document.getElementById('buffaloMilkLitres').value||0);
+  data.goatMilkAnimals=Number(document.getElementById('goatMilkAnimals').value||0);
+  data.goatMilkLitres=Number(document.getElementById('goatMilkLitres').value||0);
   data.layingHens=Number(document.getElementById('layingHens').value||0);
   data.dailyEggs=Number(document.getElementById('dailyEggs').value||0);
   data.monthlyPork=Number(document.getElementById('monthlyPork').value||0);
@@ -297,6 +341,10 @@ function refreshFarmerSelect(){
   });
   if(farmers.some(f=>String(f.id)===previous))visitSelect.value=previous;
  }
+  if (typeof refreshAreaStatisticsDashboard === 'function') {
+    refreshAreaStatisticsDashboard();
+  }
+
   const select=document.getElementById('farmerSelect');
   if(!select)return;
 
@@ -355,8 +403,18 @@ function showFarmerDetails(farmer){
     ${animalRows}
 
     <h3>🥛 කිරි නිෂ්පාදනය</h3>
-    <p>කිරි දෙන සතුන්: ${Number(livestock.milkAnimals||0)}</p>
+
+    <h4>🐄 එළ ගව කිරි</h4>
+    <p>කිරි දෙන එළ ගවයන්: ${Number(livestock.milkAnimals||0)}</p>
     <p>දිනකට කිරි: ${Number(livestock.milkLitres||0)} ලීටර්</p>
+
+    <h4>🐃 මී ගව කිරි</h4>
+    <p>කිරි දෙන මී ගවයන්: ${Number(livestock.buffaloMilkAnimals||0)}</p>
+    <p>දිනකට කිරි: ${Number(livestock.buffaloMilkLitres||0)} ලීටර්</p>
+
+    <h4>🐐 එළු කිරි</h4>
+    <p>කිරි දෙන එළුවන්: ${Number(livestock.goatMilkAnimals||0)}</p>
+    <p>දිනකට කිරි: ${Number(livestock.goatMilkLitres||0)} ලීටර්</p>
 
     <h3>🥚 කුකුළු නිෂ්පාදනය</h3>
     <p>බිත්තර දමන කිකිළියන්: ${Number(livestock.layingHens||0)}</p>
@@ -447,6 +505,21 @@ function showFarmerDetails(farmer){
       document.getElementById('profileVillage').value=farmer.village||'';
       document.getElementById('profileStatus').value=farmer.status||'registered';
 
+      const savedTypes = livestockTypes
+        .filter(a=>{
+          const animal=v[a.id]||{};
+          return calculateAnimalTotal(animal)>0;
+        })
+        .map(a=>a.id);
+
+      const selectedTypes = Array.isArray(v.selectedSpecies)
+        ? [...new Set(v.selectedSpecies.filter(id=>
+            livestockTypes.some(a=>a.id===id)
+          ))]
+        : savedTypes;
+
+      setSelectedLivestockTypes(selectedTypes);
+
       livestockTypes.forEach(a=>{
         const animal=v[a.id]||{};
         ['female','male','femaleYoung','maleYoung'].forEach(type=>{
@@ -460,7 +533,8 @@ function showFarmerDetails(farmer){
         updateAnimalTotal(a.id);
       });
 
-      ['milkAnimals','milkLitres','layingHens','dailyEggs','monthlyPork'].forEach(id=>{
+      ['milkAnimals','milkLitres','buffaloMilkAnimals','buffaloMilkLitres',
+       'goatMilkAnimals','goatMilkLitres','layingHens','dailyEggs','monthlyPork'].forEach(id=>{
         document.getElementById(id).value=v[id]||0;
       });
 
@@ -478,7 +552,8 @@ document.getElementById('newFarmerBtn').addEventListener('click',()=>{
 
   const fields = [
     'profileName','profileReg','profilePhone','profileVillage',
-    'milkAnimals','milkLitres','layingHens','dailyEggs','monthlyPork'
+    'milkAnimals','milkLitres','buffaloMilkAnimals','buffaloMilkLitres',
+    'goatMilkAnimals','goatMilkLitres','layingHens','dailyEggs','monthlyPork'
   ];
 
   fields.forEach(id=>{
@@ -487,6 +562,8 @@ document.getElementById('newFarmerBtn').addEventListener('click',()=>{
   });
 
   document.getElementById('profileStatus').value='registered';
+
+  setSelectedLivestockTypes([]);
 
   livestockTypes.forEach(a=>{
     ['female','male','femaleYoung','maleYoung','firstCalved','eligible','multipleBirths']
@@ -522,7 +599,12 @@ document.getElementById('saveFarmerBtn').addEventListener('click',()=>{
       village:document.getElementById('profileVillage').value.trim()
     }, false);
 
-    updateFarmerLivestock(farmerId,collectLivestockData(), false);
+    const existingFarmer=farmers.find(f=>String(f.id)===String(farmerId));
+    updateFarmerLivestock(
+      farmerId,
+      collectLivestockData(existingFarmer?.livestock||{}),
+      false
+    );
     saveFarmers();
 
     editingLivestockFarmerId=null;
@@ -645,6 +727,184 @@ document.getElementById('saveAiRecordBtn').addEventListener('click',()=>{
 });
 
 renderLivestockInputs();
+initializeAreaStatisticsDashboard();
 refreshFarmerSelect();
 refreshAiFarmerSelect();
+
+
+// AREA STATISTICS DASHBOARD
+function areaNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function getAreaStatsFarmers() {
+  const filter = document.getElementById('areaVillageFilter');
+  const village = filter ? filter.value : '__ALL__';
+
+  if (village === '__ALL__') return farmers;
+
+  return farmers.filter(f =>
+    String(f.village || '').trim() === village
+  );
+}
+
+function refreshAreaStatisticsDashboard() {
+  const filter = document.getElementById('areaVillageFilter');
+  if (!filter) return;
+
+  const previous = filter.value || '__ALL__';
+  const villages = [...new Set(
+    farmers.map(f => String(f.village || '').trim()).filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b, 'si'));
+
+  filter.innerHTML = '';
+
+  const allOption = document.createElement('option');
+  allOption.value = '__ALL__';
+  allOption.textContent = 'සියලු ප්‍රදේශ';
+  filter.appendChild(allOption);
+
+  villages.forEach(village => {
+    const option = document.createElement('option');
+    option.value = village;
+    option.textContent = village;
+    filter.appendChild(option);
+  });
+
+  filter.value = villages.includes(previous) || previous === '__ALL__'
+    ? previous : '__ALL__';
+
+  renderAreaStatistics();
+}
+
+function renderAreaStatistics() {
+  const farmerList = getAreaStatsFarmers();
+  const farmerCount = document.getElementById('areaFarmerCount');
+  if (!farmerCount) return;
+
+  farmerCount.textContent = 'ගොවීන්: ' + farmerList.length;
+
+  const speciesTotals = {};
+  livestockTypes.forEach(type => {
+    speciesTotals[type.id] = 0;
+  });
+
+  let totalAnimals = 0;
+  let cowMilkDaily = 0;
+  let buffaloMilkDaily = 0;
+  let goatMilkDaily = 0;
+  let cowMilkAnimals = 0;
+  let buffaloMilkAnimals = 0;
+  let goatMilkAnimals = 0;
+  let dailyEggs = 0;
+  let layingHens = 0;
+  let monthlyPork = 0;
+
+  farmerList.forEach(farmer => {
+    const livestock = farmer.livestock || {};
+
+    livestockTypes.forEach(type => {
+      const animal = livestock[type.id] || {};
+      const count = calculateAnimalTotal(animal);
+      speciesTotals[type.id] += count;
+      totalAnimals += count;
+    });
+
+    cowMilkDaily += areaNumber(livestock.milkLitres);
+    buffaloMilkDaily += areaNumber(livestock.buffaloMilkLitres);
+    goatMilkDaily += areaNumber(livestock.goatMilkLitres);
+
+    cowMilkAnimals += areaNumber(livestock.milkAnimals);
+    buffaloMilkAnimals += areaNumber(livestock.buffaloMilkAnimals);
+    goatMilkAnimals += areaNumber(livestock.goatMilkAnimals);
+
+    dailyEggs += areaNumber(livestock.dailyEggs);
+    layingHens += areaNumber(livestock.layingHens);
+    monthlyPork += areaNumber(livestock.monthlyPork);
+  });
+
+  const animalSummary = document.getElementById('areaAnimalSummary');
+  const animalDetails = document.getElementById('areaAnimalDetails');
+
+  const topSpecies = livestockTypes
+    .map(type => ({ name: type.name, count: speciesTotals[type.id] }))
+    .filter(item => item.count > 0)
+    .sort((a, b) => b.count - a.count)[0];
+
+  animalSummary.innerHTML = `
+    <div class="stat"><strong>${totalAnimals}</strong>මුළු සතුන්</div>
+    <div class="stat"><strong>${topSpecies ? topSpecies.name : 'දත්ත නැත'}</strong>වැඩිම සතුන් සිටින වර්ගය</div>
+  `;
+
+  animalDetails.innerHTML = livestockTypes.map(type => {
+    const count = speciesTotals[type.id];
+    return `<p>${type.name}: <b>${count}</b></p>`;
+  }).join('');
+
+  document.getElementById('areaMilkProduction').innerHTML = `
+    <p>ගව කිරි: ${cowMilkDaily * 30} ලීටර් / මාසය
+      <span class="small">(දිනකට ${cowMilkDaily} L · කිරි දෙන සතුන් ${cowMilkAnimals})</span></p>
+    <p>මී ගව කිරි: ${buffaloMilkDaily * 30} ලීටර් / මාසය
+      <span class="small">(දිනකට ${buffaloMilkDaily} L · කිරි දෙන සතුන් ${buffaloMilkAnimals})</span></p>
+    <p>එළු කිරි: ${goatMilkDaily * 30} ලීටර් / මාසය
+      <span class="small">(දිනකට ${goatMilkDaily} L · කිරි දෙන සතුන් ${goatMilkAnimals})</span></p>
+    <p class="small">මාසික ඇස්තමේන්තුව (දින 30)</p>
+  `;
+
+  document.getElementById('areaEggProduction').innerHTML = `
+    <p>මාසික බිත්තර ඇස්තමේන්තුව: <b>${dailyEggs * 30}</b></p>
+    <p>දිනකට බිත්තර: ${dailyEggs}</p>
+    <p>බිත්තර දමන කිකිළියන්: ${layingHens}</p>
+    <p class="small">මාසික ඇස්තමේන්තුව (දින 30)</p>
+  `;
+
+  document.getElementById('areaPorkProduction').innerHTML = `
+    <p>මාසික ඌරු මස් නිෂ්පාදනය: <b>${monthlyPork} kg</b></p>
+  `;
+
+  const milkTypes = [
+    { name: 'ගව කිරි', litres: cowMilkDaily * 30 },
+    { name: 'මී ගව කිරි', litres: buffaloMilkDaily * 30 },
+    { name: 'එළු කිරි', litres: goatMilkDaily * 30 }
+  ].sort((a, b) => b.litres - a.litres);
+
+  const highestMilk = milkTypes[0];
+
+  document.getElementById('areaHighlights').innerHTML = `
+    <p>වැඩිම සත්ත්ව ගණන: <b>${topSpecies ? topSpecies.name : 'දත්ත නැත'}</b></p>
+    <p>වැඩිම කිරි නිෂ්පාදනය: <b>${highestMilk.litres > 0
+      ? highestMilk.name + ' (' + highestMilk.litres + ' L / මාසය)'
+      : 'දත්ත නැත'}</b></p>
+    <p>සටහන: කිරි, බිත්තර සහ මස් වෙනස් ඒකකවලින් වාර්තා කරන නිසා ඒවා එකම අගයකින් ශ්‍රේණිගත කර නැත.</p>
+  `;
+}
+
+function initializeAreaStatisticsDashboard() {
+  const filter = document.getElementById('areaVillageFilter');
+  const mainButton = document.getElementById('mainScreenBtn');
+  const dashboardButton = document.getElementById('areaDashboardBtn');
+  const mainScreen = document.getElementById('mainAppScreen');
+  const dashboardScreen = document.getElementById('areaDashboardScreen');
+
+  if (!filter || !mainButton || !dashboardButton ||
+      !mainScreen || !dashboardScreen) return;
+
+  filter.addEventListener('change', renderAreaStatistics);
+
+  mainButton.addEventListener('click', () => {
+    mainScreen.style.display = 'block';
+    dashboardScreen.style.display = 'none';
+  });
+
+  dashboardButton.addEventListener('click', () => {
+    mainScreen.style.display = 'none';
+    dashboardScreen.style.display = 'block';
+    refreshAreaStatisticsDashboard();
+  });
+
+  refreshAreaStatisticsDashboard();
+}
+
+
 console.log('Farmer Profile System Loaded');
