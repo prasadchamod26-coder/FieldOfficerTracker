@@ -81,6 +81,8 @@ function createRecordId() {
 function calculateAnimalTotal(animal) {
   return Number(animal.female || 0) +
     Number(animal.male || 0) +
+    Number(animal.femaleYoung || 0) +
+    Number(animal.maleYoung || 0) +
     Number(animal.young || 0);
 }
 
@@ -204,8 +206,13 @@ function renderLivestockInputs(){
       <label>පිරිමි සතුන්</label>
       <input type="number" min="0" id="${a.id}_male" value="0">
 
-      <label>පැටවුන්</label>
-      <input type="number" min="0" id="${a.id}_young" value="0">
+      <label>ගැහැණු පැටවුන්</label>
+      <input type="number" min="0" id="${a.id}_femaleYoung" value="0">
+
+      <label>පිරිමි පැටවුන්</label>
+      <input type="number" min="0" id="${a.id}_maleYoung" value="0">
+
+      <p>මුළු පැටවුන් ගණන: <b id="${a.id}_youngTotal">0</b></p>
 
       <p>මුළු සතුන් ගණන:
       <b id="${a.id}_total">0</b></p>
@@ -225,7 +232,7 @@ function renderLivestockInputs(){
   `).join('');
 
   livestockTypes.forEach(a=>{
-    ['female','male','young'].forEach(type=>{
+    ['female','male','femaleYoung','maleYoung'].forEach(type=>{
       document.getElementById(a.id+'_'+type)
         .addEventListener('input',()=>updateAnimalTotal(a.id));
     });
@@ -235,8 +242,11 @@ function renderLivestockInputs(){
 function updateAnimalTotal(id){
   const female=Number(document.getElementById(id+'_female').value||0);
   const male=Number(document.getElementById(id+'_male').value||0);
-  const young=Number(document.getElementById(id+'_young').value||0);
+  const femaleYoung=Number(document.getElementById(id+'_femaleYoung').value||0);
+  const maleYoung=Number(document.getElementById(id+'_maleYoung').value||0);
+  const young=femaleYoung+maleYoung;
 
+  document.getElementById(id+'_youngTotal').textContent=young;
   document.getElementById(id+'_total').textContent=
     female+male+young;
 }
@@ -248,7 +258,9 @@ function collectLivestockData(){
     const animal={
       female:Number(document.getElementById(a.id+'_female').value||0),
       male:Number(document.getElementById(a.id+'_male').value||0),
-      young:Number(document.getElementById(a.id+'_young').value||0)
+      femaleYoung:Number(document.getElementById(a.id+'_femaleYoung').value||0),
+      maleYoung:Number(document.getElementById(a.id+'_maleYoung').value||0),
+      young:0
     };
 
     animal.total=calculateAnimalTotal(animal);
@@ -321,7 +333,9 @@ function showFarmerDetails(farmer){
       <p><b>${a.name}</b> — මුළු: ${Number(v.total||0)}
       | ගැහැණු: ${Number(v.female||0)}
       | පිරිමි: ${Number(v.male||0)}
-      | පැටවුන්: ${Number(v.young||0)}</p>
+      | ගැහැණු පැටවුන්: ${Number(v.femaleYoung||0)}
+      | පිරිමි පැටවුන්: ${Number(v.maleYoung||0)}
+      | මුළු පැටවුන්: ${Number(v.femaleYoung||0)+Number(v.maleYoung||0)+Number(v.young||0)}</p>
       ${a.breeding?`
         <p>පළමු පැටවා ලැබූ: ${Number(v.firstCalved||0)}
         | ගැබ් ගැනීමට සුදුසු: ${Number(v.eligibleForPregnancy||0)}
@@ -435,7 +449,7 @@ function showFarmerDetails(farmer){
 
       livestockTypes.forEach(a=>{
         const animal=v[a.id]||{};
-        ['female','male','young'].forEach(type=>{
+        ['female','male','femaleYoung','maleYoung'].forEach(type=>{
           document.getElementById(a.id+'_'+type).value=animal[type]||0;
         });
         if(a.breeding){
@@ -475,7 +489,7 @@ document.getElementById('newFarmerBtn').addEventListener('click',()=>{
   document.getElementById('profileStatus').value='registered';
 
   livestockTypes.forEach(a=>{
-    ['female','male','young','firstCalved','eligible','multipleBirths']
+    ['female','male','femaleYoung','maleYoung','firstCalved','eligible','multipleBirths']
       .forEach(type=>{
         const el=document.getElementById(a.id+'_'+type);
         if(el) el.value=0;
