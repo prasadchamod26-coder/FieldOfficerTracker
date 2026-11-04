@@ -178,6 +178,7 @@ jobs:
           import android.webkit.WebViewClient;
           import androidx.webkit.WebViewAssetLoader;
           import android.webkit.WebChromeClient;
+          import android.webkit.ValueCallback;
           import android.webkit.JsResult;
           import android.widget.Toast;
           import android.content.Context;
@@ -191,6 +192,8 @@ jobs:
 
           public class MainActivity extends Activity {
               private static final int CREATE_FILE = 1001;
+              private static final int PICK_FILE = 1002;
+              private ValueCallback<Uri[]> filePathCallback;
               private String pendingContent = "";
               private WebView printWebView;
               private DownloadManager downloadManager;
@@ -231,6 +234,26 @@ jobs:
                   webView.addJavascriptInterface(new DownloadBridge(), "AndroidBridge");
 
                   webView.setWebChromeClient(new WebChromeClient() {
+                      @Override
+                      public boolean onShowFileChooser(WebView view,
+                              ValueCallback<Uri[]> callback,
+                              FileChooserParams params) {
+                          if (filePathCallback != null) {
+                              filePathCallback.onReceiveValue(null);
+                          }
+                          filePathCallback = callback;
+                          try {
+                              Intent intent = params.createIntent();
+                              startActivityForResult(intent, PICK_FILE);
+                              return true;
+                          } catch (android.content.ActivityNotFoundException e) {
+                              filePathCallback = null;
+                              Toast.makeText(MainActivity.this,
+                                  "Photo තෝරාගැනීමට නොහැකියි", Toast.LENGTH_LONG).show();
+                              return false;
+                          }
+                      }
+
                       @Override
                       public void onGeolocationPermissionsShowPrompt(
                               String origin,
@@ -416,6 +439,14 @@ jobs:
               @Override
               protected void onActivityResult(int requestCode, int resultCode, Intent data) {
                   super.onActivityResult(requestCode, resultCode, data);
+                  if (requestCode == PICK_FILE) {
+                      if (filePathCallback != null) {
+                          Uri[] results = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
+                          filePathCallback.onReceiveValue(results);
+                          filePathCallback = null;
+                      }
+                      return;
+                  }
                   if (requestCode == CREATE_FILE && resultCode == RESULT_OK && data != null) {
                       Uri uri = data.getData();
                       try (OutputStream out = getContentResolver().openOutputStream(uri)) {
