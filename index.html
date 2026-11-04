@@ -37,6 +37,7 @@ button.danger{background:#b91c1c}
 .auth-icon{text-align:center;font-size:42px}
 .auth-subtitle{text-align:center;color:#64748b;font-size:14px;margin:8px 0 22px}
 .auth-card input{margin-bottom:5px;background:#f8faf9}
+.auth-card input.secure-password{-webkit-text-security:disc;text-security:disc}
 .auth-card button{min-height:46px}
 .auth-card .secondary{background:#334155}
 .text-button,.back-button{background:transparent;color:#166534;margin-top:8px}
@@ -344,7 +345,7 @@ button.danger{background:#b91c1c}
 <label>Email Address</label>
 <input id="cloudEmail" type="email" autocomplete="username" placeholder="ඔබගේ Email ලිපිනය">
 <label>Password</label>
-<input id="cloudPassword" type="password" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="Password එක">
+<input id="cloudPassword" type="text" class="secure-password" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="Password එක">
 <button type="button" id="cloudLoginBtn">Login / පිවිසෙන්න</button>
 <button type="button" class="text-button" id="cloudResetBtn">Forgot Password?</button>
 <div class="auth-divider"><span>නැතිනම්</span></div>
@@ -362,9 +363,9 @@ button.danger{background:#b91c1c}
 <label>Email Address</label>
 <input id="registerEmail" type="email" autocomplete="email" placeholder="Email ලිපිනය">
 <label>Password</label>
-<input id="registerPassword" type="password" autocomplete="new-password" placeholder="අවම අකුරු 6ක්">
+<input id="registerPassword" type="text" class="secure-password" autocomplete="new-password" placeholder="අවම අකුරු 6ක්">
 <label>Password නැවත ඇතුළත් කරන්න</label>
-<input id="registerPasswordConfirm" type="password" autocomplete="new-password" placeholder="Password එක නැවත ඇතුළත් කරන්න">
+<input id="registerPasswordConfirm" type="text" class="secure-password" autocomplete="new-password" placeholder="Password එක නැවත ඇතුළත් කරන්න">
 <button type="button" id="cloudRegisterBtn">Create Account / ගිණුම සාදන්න</button>
 <p class="small auth-message" id="registerMessage"></p>
 </div>
