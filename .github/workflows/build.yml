@@ -227,6 +227,13 @@ jobs:
                   }
 
                   WebView webView = new WebView(this);
+
+                  // Disable Android Autofill suggestions inside this WebView.
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                      webView.setImportantForAutofill(
+                          android.view.View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
+                  }
+
                   WebSettings settings = webView.getSettings();
                   settings.setJavaScriptEnabled(true);
                   settings.setDomStorageEnabled(true);
