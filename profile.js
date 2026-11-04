@@ -363,6 +363,7 @@ function refreshFarmerSelect(){
 }
 
 let editingLivestockFarmerId = null;
+let editingFarmerMode = null;
 
 function showFarmerDetails(farmer){
   const box=document.getElementById('farmerDetails');
@@ -431,6 +432,8 @@ function showFarmerDetails(farmer){
       '⚠️ මාස 3ක Livestock Update එක අවශ්‍යයි.':
       '✅ Livestock Update තවම අවශ්‍ය නැහැ.'}</p>
 
+    <button type="button" id="editFarmerProfileBtn">✏️ ගොවි විස්තර සංස්කරණය කරන්න</button>
+
     ${isLivestockUpdateDue(farmer)?
       '<button type="button" id="updateLivestockBtn">🐄 Livestock Update කරන්න</button>':''}
 
@@ -493,10 +496,29 @@ function showFarmerDetails(farmer){
     });
   }
 
+  const editProfileBtn=document.getElementById('editFarmerProfileBtn');
+  if(editProfileBtn){
+    editProfileBtn.addEventListener('click',()=>{
+      editingLivestockFarmerId=farmer.id;
+      editingFarmerMode='profile';
+
+      document.getElementById('profileName').value=farmer.name||'';
+      document.getElementById('profileReg').value=farmer.reg||'';
+      document.getElementById('profilePhone').value=farmer.phone||'';
+      document.getElementById('profileVillage').value=farmer.village||'';
+      document.getElementById('profileStatus').value=farmer.status||'registered';
+
+      document.getElementById('farmerProfileForm').style.display='block';
+      document.getElementById('saveFarmerBtn').textContent='💾 ගොවි විස්තර Update කරන්න';
+      alert('ගොවි විස්තර වෙනස් කර Save කරන්න.');
+    });
+  }
+
   const updateBtn=document.getElementById('updateLivestockBtn');
   if(updateBtn){
     updateBtn.addEventListener('click',()=>{
       editingLivestockFarmerId=farmer.id;
+      editingFarmerMode='livestock';
       const v=farmer.livestock||{};
 
       document.getElementById('profileName').value=farmer.name||'';
@@ -548,6 +570,7 @@ function showFarmerDetails(farmer){
 // New Farmer
 document.getElementById('newFarmerBtn').addEventListener('click',()=>{
   editingLivestockFarmerId=null;
+  editingFarmerMode=null;
   document.getElementById('saveFarmerBtn').textContent='💾 ගොවි පැතිකඩ Save කරන්න';
 
   const fields = [
@@ -599,15 +622,19 @@ document.getElementById('saveFarmerBtn').addEventListener('click',()=>{
       village:document.getElementById('profileVillage').value.trim()
     }, false);
 
-    const existingFarmer=farmers.find(f=>String(f.id)===String(farmerId));
-    updateFarmerLivestock(
-      farmerId,
-      collectLivestockData(existingFarmer?.livestock||{}),
-      false
-    );
+    if(editingFarmerMode==='livestock'){
+      const existingFarmer=farmers.find(f=>String(f.id)===String(farmerId));
+      updateFarmerLivestock(
+        farmerId,
+        collectLivestockData(existingFarmer?.livestock||{}),
+        false
+      );
+    }
+
     saveFarmers();
 
     editingLivestockFarmerId=null;
+    editingFarmerMode=null;
     farmer=farmers.find(f=>f.id===farmerId);
     document.getElementById('saveFarmerBtn').textContent='💾 ගොවි පැතිකඩ Save කරන්න';
   } else {
