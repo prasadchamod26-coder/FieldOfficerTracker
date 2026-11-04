@@ -884,23 +884,37 @@ function initializeAreaStatisticsDashboard() {
   const filter = document.getElementById('areaVillageFilter');
   const mainButton = document.getElementById('mainScreenBtn');
   const dashboardButton = document.getElementById('areaDashboardBtn');
+  const profileButton = document.getElementById('userProfileBtn');
   const mainScreen = document.getElementById('mainAppScreen');
   const dashboardScreen = document.getElementById('areaDashboardScreen');
+  const profileScreen = document.getElementById('userProfileScreen');
 
-  if (!filter || !mainButton || !dashboardButton ||
-      !mainScreen || !dashboardScreen) return;
+  if (!filter || !mainButton || !dashboardButton || !profileButton ||
+      !mainScreen || !dashboardScreen || !profileScreen) return;
 
   filter.addEventListener('change', renderAreaStatistics);
 
   mainButton.addEventListener('click', () => {
     mainScreen.style.display = 'block';
     dashboardScreen.style.display = 'none';
+    profileScreen.style.display = 'none';
   });
 
   dashboardButton.addEventListener('click', () => {
     mainScreen.style.display = 'none';
     dashboardScreen.style.display = 'block';
+    profileScreen.style.display = 'none';
     refreshAreaStatisticsDashboard();
+  });
+
+  profileButton.addEventListener('click', async () => {
+    mainScreen.style.display = 'none';
+    dashboardScreen.style.display = 'none';
+    profileScreen.style.display = 'block';
+
+    if (typeof window.loadUserProfile === 'function') {
+      await window.loadUserProfile();
+    }
   });
 
   refreshAreaStatisticsDashboard();

@@ -177,11 +177,7 @@ document.getElementById('cloudResetBtn').onclick = async () => {
   }
 };
 
-document.getElementById('cloudLogoutBtn').onclick = async () => {
-  cloudReady = false;
-  cloudUser = null;
-  await cloudAuth.signOut();
-};
+
 
 
 // Farmer / AI Cloud Delete Queues
@@ -405,6 +401,277 @@ async function activateAccountStorage(namespace) {
   if (farmerDetails) farmerDetails.innerHTML = '';
 }
 
+
+// ================= USER PROFILE =================
+
+function setUserProfileMessage(message, isError = false) {
+  const el = document.getElementById('userProfileMessage');
+  if (!el) return;
+
+  el.textContent = message;
+  el.style.color = isError ? '#b91c1c' : '#15803d';
+}
+
+function showUserProfileData(profile = {}) {
+  const user = cloudAuth.currentUser;
+  if (!user) return;
+
+  const nameInput = document.getElementById('userProfileName');
+  const phoneInput = document.getElementById('userProfilePhone');
+  const emailText = document.getElementById('userProfileEmail');
+  const photoPreview = document.getElementById('userProfilePhotoPreview');
+  const initial = document.getElementById('userProfileInitial');
+
+  const name = profile.name || user.displayName || '';
+  const phone = profile.phone || '';
+  const photoURL = profile.photoURL || user.photoURL || '';
+
+  if (nameInput) nameInput.value = name;
+  if (phoneInput) phoneInput.value = phone;
+
+  if (emailText) {
+    emailText.textContent = '📧 ' + (user.email || '');
+  }
+
+  if (photoURL) {
+    if (photoPreview) {
+      photoPreview.src = photoURL;
+      photoPreview.style.display = 'block';
+    }
+    if (initial) initial.style.display = 'none';
+  } else {
+    if (photoPreview) {
+      photoPreview.removeAttribute('src');
+      photoPreview.style.display = 'none';
+    }
+
+    if (initial) {
+      initial.style.display = 'flex';
+      initial.textContent = name
+        ? name.charAt(0).toUpperCase()
+        : '👤';
+    }
+  }
+}
+
+async function loadUserProfile() {
+  const user = cloudAuth.currentUser;
+  if (!user) return;
+
+  try {
+    const doc = await cloudDB
+      .collection('users')
+      .doc(user.uid)
+      .get();
+
+    const profile = doc.exists ? (doc.data().profile || {}) : {};
+    showUserProfileData(profile);
+
+  } catch (e) {
+    console.error('User profile load failed:', e);
+    showUserProfileData();
+  }
+}
+
+
+async function compressProfilePhoto(file) {
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Photo එක කියවීම අසාර්ථකයි.'));
+    reader.readAsDataURL(file);
+  });
+
+  const image = await new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Photo එක විවෘත කළ නොහැක.'));
+    img.src = dataUrl;
+  });
+
+  const maxDimension = 400;
+  const scale = Math.min(
+    1,
+    maxDimension / Math.max(image.width, image.height)
+  );
+
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(image.width * scale));
+  canvas.height = Math.max(1, Math.round(image.height * scale));
+
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Photo Compression අසාර්ථකයි.');
+
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  for (const quality of [0.75, 0.65, 0.55, 0.45]) {
+    const compressed = canvas.toDataURL('image/jpeg', quality);
+    if (compressed.length <= 400000) return compressed;
+  }
+
+  throw new Error('Photo එක Compress කළත් විශාලයි. වෙනත් Photo එකක් තෝරන්න.');
+}
+
+async function saveUserProfile() {
+  const user = cloudAuth.currentUser;
+
+  if (!user) {
+    alert('Login වෙන්න.');
+    return;
+  }
+
+  const name = document.getElementById('userProfileName').value.trim();
+  const phone = document.getElementById('userProfilePhone').value.trim();
+  const fileInput = document.getElementById('userProfilePhoto');
+
+  if (!name) {
+    setUserProfileMessage('ඔබගේ නම ඇතුළත් කරන්න.', true);
+    return;
+  }
+
+  setUserProfileMessage('Profile Save වෙමින් පවතී...');
+
+  try {
+    // කලින් Save කර ඇති Profile Photo එක මුලින් ලබාගන්න.
+    const existingDoc = await cloudDB
+      .collection('users')
+      .doc(user.uid)
+      .get();
+
+    const existingProfile = existingDoc.exists
+      ? (existingDoc.data().profile || {})
+      : {};
+
+    let photoURL = existingProfile.photoURL || user.photoURL || '';
+
+    // අලුත් Photo එකක් තෝරා ඇත්නම් පමණක් Compress කරගන්න.
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+      const file = fileInput.files[0];
+
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Image file එකක් තෝරන්න.');
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('Photo එක 10 MB ට අඩු එකක් තෝරන්න.');
+      }
+
+      photoURL = await compressProfilePhoto(file);
+    }
+
+    await cloudDB
+      .collection('users')
+      .doc(user.uid)
+      .set({
+        profile: {
+          name,
+          phone,
+          photoURL,
+          email: user.email || '',
+          updatedAt: new Date().toISOString()
+        }
+      }, { merge: true });
+
+    await user.updateProfile({
+      displayName: name
+    });
+
+    showUserProfileData({
+      name,
+      phone,
+      photoURL
+    });
+
+    if (fileInput) fileInput.value = '';
+
+    setUserProfileMessage('✅ Profile සාර්ථකව Save කළා.');
+
+  } catch (e) {
+    console.error('User profile save failed:', e);
+    setUserProfileMessage(
+      '❌ Profile Save කිරීම අසාර්ථකයි: ' + e.message,
+      true
+    );
+  }
+}
+
+async function sendUserProfilePasswordReset() {
+  const user = cloudAuth.currentUser;
+
+  if (!user || !user.email) {
+    alert('Login වෙලා නැහැ.');
+    return;
+  }
+
+  try {
+    await cloudAuth.sendPasswordResetEmail(user.email);
+    alert('Password Reset Link එක ඔබගේ Email එකට යැව්වා.');
+  } catch (e) {
+    alert('Password Reset Link යැවීම අසාර්ථකයි: ' + e.message);
+  }
+}
+
+async function logoutFromUserProfile() {
+  cloudReady = false;
+  cloudUser = null;
+  await cloudAuth.signOut();
+}
+
+window.loadUserProfile = loadUserProfile;
+
+// USER PROFILE BUTTONS
+document.getElementById('saveUserProfileBtn').addEventListener(
+  'click',
+  saveUserProfile
+);
+
+document.getElementById('userProfilePasswordBtn').addEventListener(
+  'click',
+  sendUserProfilePasswordReset
+);
+
+document.getElementById('profileLogoutBtn').addEventListener(
+  'click',
+  logoutFromUserProfile
+);
+
+// Photo Preview
+document.getElementById('userProfilePhoto').addEventListener(
+  'change',
+  function () {
+    const file = this.files && this.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Image file එකක් තෝරන්න.');
+      this.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+      const preview = document.getElementById(
+        'userProfilePhotoPreview'
+      );
+      const initial = document.getElementById(
+        'userProfileInitial'
+      );
+
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+      initial.style.display = 'none';
+    };
+
+    reader.readAsDataURL(file);
+  }
+);
+
+
+// ================================================
+
 async function startCloudSync(user) {
   document.getElementById('appDataArea').style.display = 'none';
 
@@ -477,6 +744,9 @@ async function startCloudSync(user) {
 
     cloudReady = true;
     await syncCloud();
+
+    // Login වූ User ගේ Profile එක Firebase වලින් Load කරන්න.
+    await loadUserProfile();
 
   } catch (e) {
     console.error(e);

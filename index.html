@@ -57,6 +57,7 @@ button.danger{background:#b91c1c}
 <div class="row" id="appNavigation">
   <button type="button" id="mainScreenBtn">🏠 ප්‍රධාන තිරය</button>
   <button type="button" id="areaDashboardBtn" class="secondary">📊 ප්‍රදේශ සංඛ්‍යාලේඛන</button>
+  <button type="button" id="userProfileBtn" class="secondary">👤 මගේ Profile</button>
 </div>
 
 <div id="mainAppScreen">
@@ -303,6 +304,37 @@ button.danger{background:#b91c1c}
   </div>
 </div>
 
+<div id="userProfileScreen" style="display:none">
+  <div class="card">
+    <h3>👤 මගේ User Profile</h3>
+    <div style="text-align:center;margin:18px 0">
+      <img id="userProfilePhotoPreview" alt="Profile Photo"
+        style="width:110px;height:110px;border-radius:50%;object-fit:cover;background:#eee;display:none;margin:auto">
+      <p id="userProfileInitial" style="width:110px;height:110px;border-radius:50%;background:#e8f5e9;display:flex;align-items:center;justify-content:center;font-size:42px;margin:0 auto">👤</p>
+    </div>
+    <p class="small" id="userProfileEmail">Login Email</p>
+
+    <label>සම්පූර්ණ නම</label>
+    <input id="userProfileName" type="text" maxlength="100" placeholder="ඔබගේ නම">
+
+    <label>දුරකථන අංකය</label>
+    <input id="userProfilePhone" type="tel" maxlength="25" placeholder="දුරකථන අංකය">
+
+    <label>Profile Photo එක</label>
+    <input id="userProfilePhoto" type="file" accept="image/*">
+    <p class="small">Photo එක තෝරා Save කළ හැකියි.</p>
+
+    <button type="button" id="saveUserProfileBtn">💾 Profile Save කරන්න</button>
+    <p class="small" id="userProfileMessage"></p>
+  </div>
+
+  <div class="card">
+    <h3>🔐 ගිණුම් ආරක්ෂාව</h3>
+    <button type="button" id="userProfilePasswordBtn" class="secondary">Password Reset Link එකක් යවන්න</button>
+    <button type="button" id="profileLogoutBtn" class="secondary">🚪 Logout</button>
+  </div>
+</div>
+
 </div>
 <section id="authArea">
 <div class="auth-card" id="loginScreen">
@@ -350,7 +382,7 @@ button.danger{background:#b91c1c}
 <div class="card" id="cloudLoginCard" style="display:none">
 <p class="small" id="cloudAccount">Cloud account: Not signed in</p>
 <p class="small" id="saveStatus">Local storage / උපාංගයේ දත්ත</p>
-<button type="button" class="secondary" id="cloudLogoutBtn">Logout</button>
+
 </div>
 </main>
 
