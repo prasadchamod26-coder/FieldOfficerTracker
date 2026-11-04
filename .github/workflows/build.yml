@@ -212,11 +212,6 @@ jobs:
                   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                       getWindow().getDecorView().setImportantForAutofill(
                           android.view.View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
-                      android.view.autofill.AutofillManager autofillManager =
-                          getSystemService(android.view.autofill.AutofillManager.class);
-                      if (autofillManager != null) {
-                          autofillManager.disableAutofill();
-                      }
                   }
 
                   downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
