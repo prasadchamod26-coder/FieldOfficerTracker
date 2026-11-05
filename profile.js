@@ -1045,33 +1045,47 @@ function renderAreaStatistics() {
 function initializeAreaStatisticsDashboard() {
   const filter = document.getElementById('areaVillageFilter');
   const mainButton = document.getElementById('mainScreenBtn');
+  const visitsButton = document.getElementById('farmerVisitsBtn');
   const dashboardButton = document.getElementById('areaDashboardBtn');
   const profileButton = document.getElementById('userProfileBtn');
+
   const mainScreen = document.getElementById('mainAppScreen');
+  const visitsScreen = document.getElementById('farmerVisitsScreen');
   const dashboardScreen = document.getElementById('areaDashboardScreen');
   const profileScreen = document.getElementById('userProfileScreen');
 
-  if (!filter || !mainButton || !dashboardButton || !profileButton ||
-      !mainScreen || !dashboardScreen || !profileScreen) return;
+  if (!filter || !mainButton || !visitsButton ||
+      !dashboardButton || !profileButton ||
+      !mainScreen || !visitsScreen ||
+      !dashboardScreen || !profileScreen) return;
 
   filter.addEventListener('change', renderAreaStatistics);
 
-  mainButton.addEventListener('click', () => {
-    mainScreen.style.display = 'block';
+  function hideAllScreens() {
+    mainScreen.style.display = 'none';
+    visitsScreen.style.display = 'none';
     dashboardScreen.style.display = 'none';
     profileScreen.style.display = 'none';
+  }
+
+  mainButton.addEventListener('click', () => {
+    hideAllScreens();
+    mainScreen.style.display = 'block';
+  });
+
+  visitsButton.addEventListener('click', () => {
+    hideAllScreens();
+    visitsScreen.style.display = 'block';
   });
 
   dashboardButton.addEventListener('click', () => {
-    mainScreen.style.display = 'none';
+    hideAllScreens();
     dashboardScreen.style.display = 'block';
-    profileScreen.style.display = 'none';
     refreshAreaStatisticsDashboard();
   });
 
   profileButton.addEventListener('click', async () => {
-    mainScreen.style.display = 'none';
-    dashboardScreen.style.display = 'none';
+    hideAllScreens();
     profileScreen.style.display = 'block';
 
     if (typeof window.loadUserProfile === 'function') {
@@ -1081,6 +1095,5 @@ function initializeAreaStatisticsDashboard() {
 
   refreshAreaStatisticsDashboard();
 }
-
 
 console.log('Farmer Profile System Loaded');
