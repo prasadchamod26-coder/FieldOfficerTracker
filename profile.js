@@ -205,6 +205,7 @@ const livestockTypes = [
   {id:'cattle',name:'ගවයන්',breeding:true},
   {id:'buffalo',name:'මී ගවයන්',breeding:true},
   {id:'chickens',name:'කුකුළන්'},
+  {id:'quail',name:'වටුවන්'},
   {id:'pigs',name:'ඌරන්'},
   {id:'other',name:'වෙනත් සතුන්'}
 ];
@@ -287,6 +288,7 @@ function renderLivestockInputs(){
       }else if(!checkbox.checked){
         selectedLivestockTypes=selectedLivestockTypes.filter(id=>id!==a.id);
       }
+      updateProductionFields();
     });
 
     if(a.id==='chickens'){
@@ -312,6 +314,27 @@ function setSelectedLivestockTypes(types=[]){
     if(!checkbox || !form)return;
     checkbox.checked=selectedLivestockTypes.includes(a.id);
     form.style.display=checkbox.checked?'block':'none';
+  });
+  updateProductionFields();
+}
+
+function updateProductionFields(){
+  const groups = {
+    milkCattleFields: ['cattle'],
+    milkBuffaloFields: ['buffalo'],
+    milkGoatFields: ['goats'],
+    goatMeatFields: ['goats'],
+    chickenEggFields: ['chickens'],
+    chickenMeatFields: ['chickens'],
+    quailEggFields: ['quail'],
+    pigMeatFields: ['pigs']
+  };
+
+  Object.entries(groups).forEach(([elementId, species])=>{
+    const el=document.getElementById(elementId);
+    if(el) el.style.display=species.some(id=>
+      selectedLivestockTypes.includes(id)
+    )?'block':'none';
   });
 }
 
@@ -381,14 +404,36 @@ function collectLivestockData(existingLivestock={}){
 
   data.selectedSpecies=[...selectedLivestockTypes];
 
-  data.milkAnimals=Number(document.getElementById('milkAnimals').value||0);
-  data.milkLitres=Number(document.getElementById('milkLitres').value||0);
-  data.buffaloMilkAnimals=Number(document.getElementById('buffaloMilkAnimals').value||0);
-  data.buffaloMilkLitres=Number(document.getElementById('buffaloMilkLitres').value||0);
-  data.goatMilkAnimals=Number(document.getElementById('goatMilkAnimals').value||0);
-  data.goatMilkLitres=Number(document.getElementById('goatMilkLitres').value||0);
-  data.dailyEggs=Number(document.getElementById('dailyEggs').value||0);
-  data.monthlyPork=Number(document.getElementById('monthlyPork').value||0);
+  // තෝරාගත් සත්ව වර්ගවල නිෂ්පාදන පමණක් Update කරයි.
+  // තෝරා නොගත් වර්ගවල පැරණි දත්ත ආරක්ෂා කරයි.
+  const selected = selectedLivestockTypes;
+
+  if(selected.includes('cattle')){
+    data.milkAnimals=Number(document.getElementById('milkAnimals').value||0);
+    data.milkLitres=Number(document.getElementById('milkLitres').value||0);
+  }
+  if(selected.includes('buffalo')){
+    data.buffaloMilkAnimals=Number(document.getElementById('buffaloMilkAnimals').value||0);
+    data.buffaloMilkLitres=Number(document.getElementById('buffaloMilkLitres').value||0);
+  }
+  if(selected.includes('goats')){
+    data.goatMilkAnimals=Number(document.getElementById('goatMilkAnimals').value||0);
+    data.goatMilkLitres=Number(document.getElementById('goatMilkLitres').value||0);
+    data.monthlyGoatMeat=Number(document.getElementById('monthlyGoatMeat').value||0);
+  }
+  if(selected.includes('chickens')){
+    data.dailyChickenEggs=Number(document.getElementById('dailyChickenEggs').value||0);
+    data.monthlyChickenMeat=Number(document.getElementById('monthlyChickenMeat').value||0);
+  }
+  if(selected.includes('quail')){
+    data.dailyQuailEggs=Number(document.getElementById('dailyQuailEggs').value||0);
+  }
+  if(selected.includes('pigs')){
+    data.monthlyPork=Number(document.getElementById('monthlyPork').value||0);
+  }
+
+  // පැරණි dailyEggs දත්ත වෙනස් නොකර තබා ගනී.
+  data.dailyEggs=Number(existingLivestock.dailyEggs||0);
 
   return data;
 }
@@ -430,6 +475,13 @@ function refreshFarmerSelect(){
 
 let editingLivestockFarmerId = null;
 let editingFarmerMode = null;
+
+function farmerHasSpecies(livestock, id){
+  const selected=Array.isArray(livestock.selectedSpecies)
+    ? livestock.selectedSpecies : [];
+  return selected.includes(id) ||
+    calculateAnimalTotal(livestock[id]||{})>0;
+}
 
 function showFarmerDetails(farmer){
   const box=document.getElementById('farmerDetails');
@@ -513,25 +565,44 @@ function showFarmerDetails(farmer){
     <h3>🐄 සත්ව තොරතුරු</h3>
     ${animalRows}
 
-    <h3>🥛 කිරි නිෂ්පාදනය</h3>
+    ${farmerHasSpecies(livestock,'cattle') ? `
+      <h3>🥛 එළ ගව කිරි නිෂ්පාදනය</h3>
+      <p>කිරි දෙන එළ ගවයන්: ${Number(livestock.milkAnimals||0)}</p>
+      <p>දිනකට කිරි: ${Number(livestock.milkLitres||0)} ලීටර්</p>
+    `:''}
 
-    <h4>🐄 එළ ගව කිරි</h4>
-    <p>කිරි දෙන එළ ගවයන්: ${Number(livestock.milkAnimals||0)}</p>
-    <p>දිනකට කිරි: ${Number(livestock.milkLitres||0)} ලීටර්</p>
+    ${farmerHasSpecies(livestock,'buffalo') ? `
+      <h3>🥛 මී ගව කිරි නිෂ්පාදනය</h3>
+      <p>කිරි දෙන මී ගවයන්: ${Number(livestock.buffaloMilkAnimals||0)}</p>
+      <p>දිනකට කිරි: ${Number(livestock.buffaloMilkLitres||0)} ලීටර්</p>
+    `:''}
 
-    <h4>🐃 මී ගව කිරි</h4>
-    <p>කිරි දෙන මී ගවයන්: ${Number(livestock.buffaloMilkAnimals||0)}</p>
-    <p>දිනකට කිරි: ${Number(livestock.buffaloMilkLitres||0)} ලීටර්</p>
+    ${farmerHasSpecies(livestock,'goats') ? `
+      <h3>🐐 එළු නිෂ්පාදනය</h3>
+      <p>කිරි දෙන එළුවන්: ${Number(livestock.goatMilkAnimals||0)}</p>
+      <p>දිනකට එළු කිරි: ${Number(livestock.goatMilkLitres||0)} ලීටර්</p>
+      <p>මාසික එළු මස්: ${Number(livestock.monthlyGoatMeat||0)} kg</p>
+    `:''}
 
-    <h4>🐐 එළු කිරි</h4>
-    <p>කිරි දෙන එළුවන්: ${Number(livestock.goatMilkAnimals||0)}</p>
-    <p>දිනකට කිරි: ${Number(livestock.goatMilkLitres||0)} ලීටර්</p>
+    ${farmerHasSpecies(livestock,'chickens') ? `
+      <h3>🐓 කුකුළු නිෂ්පාදනය</h3>
+      <p>දිනකට බිත්තර: ${
+        Object.prototype.hasOwnProperty.call(livestock,'dailyChickenEggs')
+          ? Number(livestock.dailyChickenEggs||0)
+          : Number(livestock.dailyEggs||0)
+      }</p>
+      <p>මාසික කුකුළු මස්: ${Number(livestock.monthlyChickenMeat||0)} kg</p>
+    `:''}
 
-    <h3>🥚 කුකුළු නිෂ්පාදනය</h3>
-    <p>දිනකට බිත්තර: ${Number(livestock.dailyEggs||0)}</p>
+    ${farmerHasSpecies(livestock,'quail') ? `
+      <h3>🐦 වටු බිත්තර නිෂ්පාදනය</h3>
+      <p>දිනකට වටු බිත්තර: ${Number(livestock.dailyQuailEggs||0)}</p>
+    `:''}
 
-    <h3>🥩 ඌරු මස් නිෂ්පාදනය</h3>
-    <p>මාසයක මුළු මස් ප්‍රමාණය: ${Number(livestock.monthlyPork||0)} kg</p>
+    ${farmerHasSpecies(livestock,'pigs') ? `
+      <h3>🐖 ඌරු මස් නිෂ්පාදනය</h3>
+      <p>මාසික ඌරු මස්: ${Number(livestock.monthlyPork||0)} kg</p>
+    `:''}
 
     <p>Livestock අවසන් Update:
     ${farmer.livestockUpdatedAt?
@@ -685,10 +756,18 @@ function showFarmerDetails(farmer){
       });
 
       ['milkAnimals','milkLitres','buffaloMilkAnimals','buffaloMilkLitres',
-       'goatMilkAnimals','goatMilkLitres','dailyEggs','monthlyPork'].forEach(id=>{
+       'goatMilkAnimals','goatMilkLitres','dailyEggs','monthlyPork',
+       'dailyChickenEggs','monthlyChickenMeat','dailyQuailEggs',
+       'monthlyGoatMeat'].forEach(id=>{
         const el=document.getElementById(id);
         if(el) el.value=v[id]||0;
       });
+
+      if(!Object.prototype.hasOwnProperty.call(v,'dailyChickenEggs') &&
+         selectedLivestockTypes.includes('chickens')){
+        document.getElementById('dailyChickenEggs').value=v.dailyEggs||0;
+      }
+      updateProductionFields();
 
       document.getElementById('farmerProfileForm').style.display='block';
       document.getElementById('saveFarmerBtn').textContent='💾 Livestock Update Save කරන්න';
@@ -706,7 +785,9 @@ document.getElementById('newFarmerBtn').addEventListener('click',()=>{
   const fields = [
     'profileName','profileReg','profilePhone','profileVillage',
     'milkAnimals','milkLitres','buffaloMilkAnimals','buffaloMilkLitres',
-    'goatMilkAnimals','goatMilkLitres','dailyEggs','monthlyPork'
+    'goatMilkAnimals','goatMilkLitres','dailyEggs','monthlyPork',
+    'dailyChickenEggs','monthlyChickenMeat','dailyQuailEggs',
+    'monthlyGoatMeat'
   ];
 
   fields.forEach(id=>{
@@ -964,9 +1045,12 @@ function renderAreaStatistics() {
   let cowMilkAnimals = 0;
   let buffaloMilkAnimals = 0;
   let goatMilkAnimals = 0;
-  let dailyEggs = 0;
+  let dailyChickenEggs = 0;
+  let dailyQuailEggs = 0;
   let layingHens = 0;
   let monthlyPork = 0;
+  let monthlyGoatMeat = 0;
+  let monthlyChickenMeat = 0;
 
   farmerList.forEach(farmer => {
     const livestock = farmer.livestock || {};
@@ -986,7 +1070,18 @@ function renderAreaStatistics() {
     buffaloMilkAnimals += areaNumber(livestock.buffaloMilkAnimals);
     goatMilkAnimals += areaNumber(livestock.goatMilkAnimals);
 
-    dailyEggs += areaNumber(livestock.dailyEggs);
+    const hasChickens=farmerHasSpecies(livestock,'chickens');
+    dailyChickenEggs += Object.prototype.hasOwnProperty.call(livestock,'dailyChickenEggs')
+      ? areaNumber(livestock.dailyChickenEggs)
+      : (hasChickens ? areaNumber(livestock.dailyEggs) : 0);
+
+    if(farmerHasSpecies(livestock,'quail')){
+      dailyQuailEggs += areaNumber(livestock.dailyQuailEggs);
+    }
+
+    monthlyGoatMeat += areaNumber(livestock.monthlyGoatMeat);
+    monthlyChickenMeat += areaNumber(livestock.monthlyChickenMeat);
+
     const chickenData=livestock.chickens||{};
     layingHens += Object.prototype.hasOwnProperty.call(chickenData,'eggLaying')
       ? areaNumber(chickenData.eggLaying)
@@ -1023,14 +1118,20 @@ function renderAreaStatistics() {
   `;
 
   document.getElementById('areaEggProduction').innerHTML = `
-    <p>මාසික බිත්තර ඇස්තමේන්තුව: <b>${dailyEggs * 30}</b></p>
-    <p>දිනකට බිත්තර: ${dailyEggs}</p>
+    <p>කුකුළු බිත්තර / දිනකට: <b>${dailyChickenEggs}</b></p>
+    <p>කුකුළු බිත්තර / මාසික ඇස්තමේන්තුව: <b>${dailyChickenEggs * 30}</b></p>
     <p>බිත්තර දමන කිකිළියන්: ${layingHens}</p>
-    <p class="small">මාසික ඇස්තමේන්තුව (දින 30)</p>
+    <hr>
+    <p>වටු බිත්තර / දිනකට: <b>${dailyQuailEggs}</b></p>
+    <p>වටු බිත්තර / මාසික ඇස්තමේන්තුව: <b>${dailyQuailEggs * 30}</b></p>
+    <p class="small">මාසික ඇස්තමේන්තුව දින 30 අනුවයි.</p>
   `;
 
   document.getElementById('areaPorkProduction').innerHTML = `
-    <p>මාසික ඌරු මස් නිෂ්පාදනය: <b>${monthlyPork} kg</b></p>
+    <p>එළු මස්: <b>${monthlyGoatMeat} kg / මාසය</b></p>
+    <p>කුකුළු මස්: <b>${monthlyChickenMeat} kg / මාසය</b></p>
+    <p>ඌරු මස්: <b>${monthlyPork} kg / මාසය</b></p>
+    <p><b>මුළු මස්: ${monthlyGoatMeat + monthlyChickenMeat + monthlyPork} kg / මාසය</b></p>
   `;
 
   const milkTypes = [

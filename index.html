@@ -100,38 +100,61 @@ button.danger{background:#b91c1c}
 
 <div id="livestockInputs"></div>
 
-<h3>🥛 කිරි නිෂ්පාදනය</h3>
-
-<h4>🐄 එළ ගව කිරි</h4>
+<div id="milkCattleFields" style="display:none">
+<h3>🥛 එළ ගව කිරි නිෂ්පාදනය</h3>
 <label>දිනකට කිරි දෙන එළ ගවයන් ගණන</label>
 <input id="milkAnimals" type="number" min="0">
-
 <label>දිනකට එළ ගව කිරි (ලීටර්)</label>
 <input id="milkLitres" type="number" min="0" step="0.1">
+</div>
 
-<h4>🐃 මී ගව කිරි</h4>
+<div id="milkBuffaloFields" style="display:none">
+<h3>🥛 මී ගව කිරි නිෂ්පාදනය</h3>
 <label>දිනකට කිරි දෙන මී ගවයන් ගණන</label>
 <input id="buffaloMilkAnimals" type="number" min="0">
-
 <label>දිනකට මී ගව කිරි (ලීටර්)</label>
 <input id="buffaloMilkLitres" type="number" min="0" step="0.1">
+</div>
 
-<h4>🐐 එළු කිරි</h4>
+<div id="milkGoatFields" style="display:none">
+<h3>🥛 එළු කිරි නිෂ්පාදනය</h3>
 <label>දිනකට කිරි දෙන එළුවන් ගණන</label>
 <input id="goatMilkAnimals" type="number" min="0">
-
 <label>දිනකට එළු කිරි (ලීටර්)</label>
 <input id="goatMilkLitres" type="number" min="0" step="0.1">
+</div>
 
-<h3>🥚 කුකුළු නිෂ්පාදනය</h3>
-<p class="small">බිත්තර දමන කිකිළියන් ගණන ඉහත 🐓 කුකුළු වර්ග වලින් ලබා ගනී.</p>
+<div id="goatMeatFields" style="display:none">
+<h3>🥩 එළු මස් නිෂ්පාදනය</h3>
+<label>මාසයක මුළු එළු මස් ප්‍රමාණය (kg)</label>
+<input id="monthlyGoatMeat" type="number" min="0" step="0.1">
+</div>
 
-<label>දිනකට බිත්තර ගණන</label>
-<input id="dailyEggs" type="number" min="0">
+<div id="chickenEggFields" style="display:none">
+<h3>🥚 කුකුළු බිත්තර නිෂ්පාදනය</h3>
+<label>දිනකට කුකුළු බිත්තර ගණන</label>
+<input id="dailyChickenEggs" type="number" min="0">
+</div>
 
+<div id="chickenMeatFields" style="display:none">
+<h3>🥩 කුකුළු මස් නිෂ්පාදනය</h3>
+<label>මාසයක මුළු කුකුළු මස් ප්‍රමාණය (kg)</label>
+<input id="monthlyChickenMeat" type="number" min="0" step="0.1">
+</div>
+
+<div id="quailEggFields" style="display:none">
+<h3>🥚 වටු බිත්තර නිෂ්පාදනය</h3>
+<label>දිනකට වටු බිත්තර ගණන</label>
+<input id="dailyQuailEggs" type="number" min="0">
+</div>
+
+<div id="pigMeatFields" style="display:none">
 <h3>🥩 ඌරු මස් නිෂ්පාදනය</h3>
-<label>මාසයක මුළු මස් ප්‍රමාණය (kg)</label>
+<label>මාසයක මුළු ඌරු මස් ප්‍රමාණය (kg)</label>
 <input id="monthlyPork" type="number" min="0" step="0.1">
+</div>
+
+<input id="dailyEggs" type="hidden" value="0">
 
 <button type="button" id="saveFarmerBtn">💾 ගොවි පැතිකඩ Save කරන්න</button>
 </div>
@@ -299,7 +322,7 @@ button.danger{background:#b91c1c}
   </div>
 
   <div class="card">
-    <h3>🥩 ඌරු මස් නිෂ්පාදනය</h3>
+    <h3>🥩 මස් නිෂ්පාදනය</h3>
     <div id="areaPorkProduction"></div>
   </div>
 
