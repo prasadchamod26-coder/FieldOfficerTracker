@@ -454,6 +454,9 @@ function showFarmerDetails(farmer){
         ? calculateAnimalTotal(v)
         : Number(v.total||calculateAnimalTotal(v));
 
+      // සතුන් නැත්නම් මේ වර්ගය පෙන්වන්න එපා
+      if(total <= 0) return '';
+
       return `
         <p><b>🐓 ${a.name}</b> — මුළු: ${total}</p>
         ${hasNewChickenFields ? `
@@ -476,8 +479,13 @@ function showFarmerDetails(farmer){
       `;
     }
 
+    const total = Number(v.total || calculateAnimalTotal(v));
+
+    // සතුන් නැත්නම් මේ වර්ගය පෙන්වන්න එපා
+    if(total <= 0) return '';
+
     return `
-      <p><b>${a.name}</b> — මුළු: ${Number(v.total||calculateAnimalTotal(v))}
+      <p><b>${a.name}</b> — මුළු: ${total}
       | ගැහැණු: ${Number(v.female||0)}
       | පිරිමි: ${Number(v.male||0)}
       | ගැහැණු පැටවුන්: ${Number(v.femaleYoung||0)}
