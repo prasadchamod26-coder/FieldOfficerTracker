@@ -188,8 +188,12 @@ function addInseminationRecord(data) {
     inseminationDate: data.inseminationDate || '',
     semenStrawNo: data.semenStrawNo || '',
     officer: data.officer || '',
-    pregnancyCheckDate: data.pregnancyCheckDate || '',
-    result: data.result || 'not_checked',
+    pregnancyCheckDate: '',
+    result: 'not_checked',
+    heatReturnStatus: 'pending',
+    heatReturnCheckedAt: '',
+    calvingStatus: 'pending',
+    calfGender: '',
     createdAt: new Date().toISOString()
   };
 
@@ -899,6 +903,148 @@ function refreshAiFarmerSelect(){
   });
 }
 
+
+function aiDateAddDays(value, days) {
+  if (!value) return '';
+  const [y,m,d] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(y,m-1,d));
+  date.setUTCDate(date.getUTCDate()+days);
+  return date.toISOString().slice(0,10);
+}
+
+function aiDateAddMonths(value, months) {
+  if (!value) return '';
+  const [y,m,d] = value.split('-').map(Number);
+  const first = new Date(Date.UTC(y,m-1+months,1));
+  const last = new Date(Date.UTC(
+    first.getUTCFullYear(), first.getUTCMonth()+1, 0
+  )).getUTCDate();
+  return new Date(Date.UTC(
+    first.getUTCFullYear(), first.getUTCMonth(), Math.min(d,last)
+  )).toISOString().slice(0,10);
+}
+
+function aiToday() {
+  const d = new Date();
+  return d.getFullYear()+'-'+
+    String(d.getMonth()+1).padStart(2,'0')+'-'+
+    String(d.getDate()).padStart(2,'0');
+}
+
+function aiSafeText(value) {
+  return String(value || '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+function updateAiFollowup(recordId, action) {
+  const r = inseminations.find(x => x.id === recordId);
+  if (!r) return;
+
+  const today = aiToday();
+
+  if (action === 'heat_yes') {
+    r.heatReturnStatus = 'yes';
+    r.heatReturnCheckedAt = today;
+    r.result = 'not_pregnant';
+  } else if (action === 'heat_no') {
+    r.heatReturnStatus = 'no';
+    r.heatReturnCheckedAt = today;
+  } else if (action === 'pregnant') {
+    r.result = 'pregnant';
+    r.pregnancyCheckDate = today;
+    r.calvingStatus = 'pending';
+  } else if (action === 'not_pregnant') {
+    r.result = 'not_pregnant';
+    r.pregnancyCheckDate = today;
+  } else if (action === 'calf_female' || action === 'calf_male') {
+    r.calvingStatus = 'born';
+    r.calfGender = action === 'calf_female' ? 'ගැහැනු' : 'පිරිමි';
+    r.calvingDate = today;
+  } else if (action === 'calf_not_born') {
+    r.calvingStatus = 'pending';
+    r.calfGender = '';
+    r.calvingDate = today;
+    r.nextCalvingCheckDate = aiDateAddDays(today, 1);
+  } else {
+    return;
+  }
+
+  saveInseminations();
+  renderAiFollowups();
+
+  const select = document.getElementById('aiFarmerSelect');
+  if (select && select.value) renderAiRecords(select.value);
+}
+
+function renderAiFollowups() {
+  const box = document.getElementById('aiFollowupsDashboard');
+  if (!box) return;
+
+  const today = aiToday();
+  const tasks = [];
+
+  inseminations.forEach(r => {
+    if (!r.inseminationDate) return;
+
+    const farmer = farmers.find(f => f.id === r.farmerId);
+    const farmerName = farmer ? farmer.name : 'නොදන්නා ගොවියා';
+    const animal = r.animalTag ? ' | '+r.animalTag : '';
+    const base = aiSafeText(farmerName)+
+      ' | '+aiSafeText(r.species)+animal;
+
+    const heatStatus = r.heatReturnStatus || 'pending';
+
+    if (heatStatus === 'pending' &&
+        r.result === 'not_checked') {
+      const due = aiDateAddDays(r.inseminationDate,21);
+      if (due <= today) {
+        tasks.push(`<div class="card">
+          <p><b>🔔 දින 21 පසු විපරම</b></p>
+          <p>${base}</p>
+          <p>සිංචන දිනය: ${aiSafeText(r.inseminationDate)}</p>
+          <p>නැවත මදයට ආවාද?</p>
+          <button type="button" onclick="updateAiFollowup('${r.id}','heat_yes')">ආවා</button>
+          <button type="button" onclick="updateAiFollowup('${r.id}','heat_no')">ආවේ නැහැ</button>
+        </div>`);
+      }
+    }
+
+    if (heatStatus === 'no' && r.result === 'not_checked') {
+      const due = aiDateAddMonths(r.inseminationDate,3);
+      if (due <= today) {
+        tasks.push(`<div class="card">
+          <p><b>🧪 ගැබ් පරීක්ෂාව</b></p>
+          <p>${base}</p>
+          <p>පරීක්ෂණයට නියමිත දිනය: ${due}</p>
+          <button type="button" onclick="updateAiFollowup('${r.id}','pregnant')">P - ගැබ්ගෙන ඇත</button>
+          <button type="button" onclick="updateAiFollowup('${r.id}','not_pregnant')">NP - ගැබ්ගෙන නැත</button>
+        </div>`);
+      }
+    }
+
+    if (r.result === 'pregnant' &&
+        (r.calvingStatus || 'pending') === 'pending') {
+      const due = r.nextCalvingCheckDate ||
+        aiDateAddDays(r.inseminationDate,285);
+      if (due <= today) {
+        tasks.push(`<div class="card">
+          <p><b>🐄 පැටවා ලැබීමේ පසු විපරම</b></p>
+          <p>${base}</p>
+          <p>නියමිත දිනය: ${due}</p>
+          <button type="button" onclick="updateAiFollowup('${r.id}','calf_female')">ගැහැනු පැටවා ලැබුණා</button>
+          <button type="button" onclick="updateAiFollowup('${r.id}','calf_male')">පිරිමි පැටවා ලැබුණා</button>
+          <button type="button" onclick="updateAiFollowup('${r.id}','calf_not_born')">තවම ලැබී නැහැ</button>
+        </div>`);
+      }
+    }
+  });
+
+  box.innerHTML = tasks.length
+    ? tasks.join('')
+    : '<p>අද කළ යුතු AI පසු විපරම් නැත. ✅</p>';
+}
+
 function renderAiRecords(farmerId){
   const box=document.getElementById('aiRecordsList');
   const records=inseminations.filter(r=>r.farmerId===farmerId);
@@ -914,21 +1060,28 @@ function renderAiRecords(farmerId){
   };
 
   const resultNames={
-    pregnant:'ගැබ්ගෙන ඇත',
-    not_pregnant:'ගැබ්ගෙන නැත',
+    pregnant:'ගැබ්ගෙන ඇත (P)',
+    not_pregnant:'ගැබ්ගෙන නැත (NP)',
     not_checked:'තවම පරීක්ෂා කර නැත'
   };
 
   box.innerHTML='<h3>📋 AI වාර්තා ඉතිහාසය</h3>'+
     records.slice().reverse().map(r=>`
       <div class="card">
-        <p><b>සත්ව වර්ගය:</b> ${speciesNames[r.species]||r.species}</p>
-        <p><b>සත්ව අංකය:</b> ${r.animalTag||'-'}</p>
-        <p><b>සිංචන දිනය:</b> ${r.inseminationDate||'-'}</p>
-        <p><b>වීර්ය මාත්‍රා අංකය:</b> ${r.semenStrawNo||'-'}</p>
-        <p><b>නිලධාරියා:</b> ${r.officer||'-'}</p>
-        <p><b>ගැබ් පරීක්ෂණ දිනය:</b> ${r.pregnancyCheckDate||'-'}</p>
-        <p><b>ප්‍රතිඵලය:</b> ${resultNames[r.result]||r.result}</p>
+        <p><b>සත්ව වර්ගය:</b> ${aiSafeText(speciesNames[r.species]||r.species)}</p>
+        <p><b>සත්ව අංකය:</b> ${aiSafeText(r.animalTag||'-')}</p>
+        <p><b>සිංචන දිනය:</b> ${aiSafeText(r.inseminationDate||'-')}</p>
+        <p><b>වීර්ය මාත්‍රා අංකය:</b> ${aiSafeText(r.semenStrawNo||'-')}</p>
+        <p><b>නිලධාරියා:</b> ${aiSafeText(r.officer||'-')}</p>
+        <p><b>ගැබ් පරීක්ෂණ දිනය:</b> ${aiSafeText(r.pregnancyCheckDate||'-')}</p>
+        <p><b>ප්‍රතිඵලය:</b> ${resultNames[r.result]||aiSafeText(r.result)}</p>
+        <p><b>පැටවාගේ තත්ත්වය:</b> ${
+          r.calvingStatus==='born'
+            ? 'පැටවා ලැබුණා ('+aiSafeText(r.calfGender)+')'
+            : r.calvingStatus==='pending' && r.calvingDate
+              ? 'තවම පැටවා ලැබී නැහැ'
+              : '-'
+        }</p>
       </div>
     `).join('');
 }
@@ -961,16 +1114,13 @@ document.getElementById('saveAiRecordBtn').addEventListener('click',()=>{
     inseminationDate,
     semenStrawNo:document.getElementById('aiStrawNo').value.trim(),
     officer:document.getElementById('aiOfficer').value.trim(),
-    pregnancyCheckDate:document.getElementById('aiCheckDate').value,
-    result:document.getElementById('aiResult').value
   });
 
-  ['aiAnimalTag','aiDate','aiStrawNo','aiOfficer','aiCheckDate']
+  ['aiAnimalTag','aiDate','aiStrawNo','aiOfficer']
     .forEach(id=>document.getElementById(id).value='');
 
-  document.getElementById('aiResult').value='not_checked';
-
   renderAiRecords(farmerId);
+  renderAiFollowups();
   alert('AI වාර්තාව සාර්ථකව Save කළා.');
 });
 
@@ -978,6 +1128,7 @@ renderLivestockInputs();
 initializeAreaStatisticsDashboard();
 refreshFarmerSelect();
 refreshAiFarmerSelect();
+renderAiFollowups();
 
 
 // AREA STATISTICS DASHBOARD
