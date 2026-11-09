@@ -20,7 +20,8 @@ async function checkForUpdates() {
       if (confirm("අලුත් Update එකක් තිබෙනවා: " + latestVersion +
                   "\nදැන් Download කරන්නද?")) {
         if (window.AndroidBridge && window.AndroidBridge.downloadAndInstallApk) {
-          window.AndroidBridge.downloadAndInstallApk(apk.browser_download_url);
+          const apkApiUrl = "https://api.github.com/repos/prasadchamod26-coder/FieldOfficerTracker/releases/assets/" + apk.id;
+          window.AndroidBridge.downloadAndInstallApk(apkApiUrl);
         } else {
           window.open(apk.browser_download_url, "_blank");
         }
