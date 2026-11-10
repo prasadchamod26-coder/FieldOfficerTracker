@@ -59,6 +59,7 @@ button.danger{background:#b91c1c}
   <button type="button" id="mainScreenBtn">🏠 ප්‍රධාන තිරය</button>
   <button type="button" id="farmerVisitsBtn" class="secondary">👨‍🌾 ගොවි හමුවීම්</button>
   <button type="button" id="areaDashboardBtn" class="secondary">📊 ප්‍රදේශ සංඛ්‍යාලේඛන</button>
+  <button type="button" id="aiDashboardBtn" class="secondary">🐄 AI සංඛ්‍යාලේඛන</button>
   <button type="button" id="userProfileBtn" class="secondary">👤 මගේ Profile</button>
 </div>
 
@@ -204,6 +205,27 @@ button.danger{background:#b91c1c}
 <div id="aiRecordsList"></div>
 </div>
 </div>
+</div>
+
+<div id="aiDashboardScreen" style="display:none">
+
+  <div class="card">
+    <h3>🐄 කෘත්‍රිම සිංචන මාසික සංඛ්‍යාලේඛන</h3>
+    <label>මාසය තෝරන්න</label>
+    <select id="aiDashboardMonth"></select>
+    <label>අවුරුද්ද තෝරන්න</label>
+    <select id="aiDashboardYear"></select>
+    <div class="stats" id="aiMonthlyStats"></div>
+    <p class="small">සිංචන දිනය, ගැබ් පරීක්ෂණ දිනය සහ පැටවුන් උපන් දිනය අනුව අදාළ ගණන් පෙන්වයි.</p>
+  </div>
+
+  <div class="card">
+    <h3>📈 වාර්ෂික AI ප්‍රගතිය</h3>
+    <label>අවුරුද්ද තෝරන්න</label>
+    <select id="aiAnnualYear"></select>
+    <div id="aiAnnualChart"></div>
+  </div>
+
 </div>
 
 <div id="farmerVisitsScreen" style="display:none">

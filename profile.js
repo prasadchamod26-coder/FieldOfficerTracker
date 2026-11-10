@@ -972,6 +972,7 @@ function updateAiFollowup(recordId, action) {
 
   saveInseminations();
   renderAiFollowups();
+  renderAiDashboard();
 
   const select = document.getElementById('aiFarmerSelect');
   if (select && select.value) renderAiRecords(select.value);
@@ -1121,6 +1122,7 @@ document.getElementById('saveAiRecordBtn').addEventListener('click',()=>{
 
   renderAiRecords(farmerId);
   renderAiFollowups();
+  renderAiDashboard();
   alert('AI වාර්තාව සාර්ථකව Save කළා.');
 });
 
@@ -1307,17 +1309,19 @@ function initializeAreaStatisticsDashboard() {
   const mainButton = document.getElementById('mainScreenBtn');
   const visitsButton = document.getElementById('farmerVisitsBtn');
   const dashboardButton = document.getElementById('areaDashboardBtn');
+  const aiButton = document.getElementById('aiDashboardBtn');
   const profileButton = document.getElementById('userProfileBtn');
 
   const mainScreen = document.getElementById('mainAppScreen');
   const visitsScreen = document.getElementById('farmerVisitsScreen');
   const dashboardScreen = document.getElementById('areaDashboardScreen');
+  const aiScreen = document.getElementById('aiDashboardScreen');
   const profileScreen = document.getElementById('userProfileScreen');
 
   if (!filter || !mainButton || !visitsButton ||
-      !dashboardButton || !profileButton ||
+      !dashboardButton || !aiButton || !profileButton ||
       !mainScreen || !visitsScreen ||
-      !dashboardScreen || !profileScreen) return;
+      !dashboardScreen || !aiScreen || !profileScreen) return;
 
   filter.addEventListener('change', renderAreaStatistics);
 
@@ -1325,6 +1329,7 @@ function initializeAreaStatisticsDashboard() {
     mainScreen.style.display = 'none';
     visitsScreen.style.display = 'none';
     dashboardScreen.style.display = 'none';
+    aiScreen.style.display = 'none';
     profileScreen.style.display = 'none';
   }
 
@@ -1344,6 +1349,12 @@ function initializeAreaStatisticsDashboard() {
     refreshAreaStatisticsDashboard();
   });
 
+  aiButton.addEventListener('click', () => {
+    hideAllScreens();
+    aiScreen.style.display = 'block';
+    renderAiDashboard();
+  });
+
   profileButton.addEventListener('click', async () => {
     hideAllScreens();
     profileScreen.style.display = 'block';
@@ -1357,3 +1368,170 @@ function initializeAreaStatisticsDashboard() {
 }
 
 console.log('Farmer Profile System Loaded');
+
+// ======================================
+// AI STATISTICS DASHBOARD
+// ======================================
+
+const aiDashboardMonths = [
+  'ජනවාරි','පෙබරවාරි','මාර්තු','අප්‍රේල්',
+  'මැයි','ජූනි','ජූලි','අගෝස්තු',
+  'සැප්තැම්බර්','ඔක්තෝබර්','නොවැම්බර්','දෙසැම්බර්'
+];
+
+function aiDashboardDateKey(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))
+    ? value.slice(0, 7) : '';
+}
+
+function aiDashboardRender() {
+  const monthSelect = document.getElementById('aiDashboardMonth');
+  const yearSelect = document.getElementById('aiDashboardYear');
+  const annualSelect = document.getElementById('aiAnnualYear');
+  const statsBox = document.getElementById('aiMonthlyStats');
+  const chartBox = document.getElementById('aiAnnualChart');
+
+  if (!monthSelect || !yearSelect || !annualSelect ||
+      !statsBox || !chartBox) return;
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = String(now.getMonth()+1).padStart(2,'0');
+
+  const years = new Set([currentYear]);
+
+  inseminations.forEach(r => {
+    [r.inseminationDate, r.pregnancyCheckDate,
+     r.heatReturnCheckedAt, r.calvingDate].forEach(date => {
+      const key = aiDashboardDateKey(date);
+      if (key) years.add(Number(key.slice(0,4)));
+    });
+  });
+
+  const sortedYears = [...years].sort((a,b)=>b-a);
+
+  function fillSelect(select, selected) {
+    const old = select.value;
+    select.innerHTML = sortedYears.map(y =>
+      `<option value="${y}">${y}</option>`
+    ).join('');
+    select.value = sortedYears.includes(Number(old))
+      ? old : String(selected);
+  }
+
+  if (!monthSelect.options.length) {
+    monthSelect.innerHTML = aiDashboardMonths.map((m,i) =>
+      `<option value="${String(i+1).padStart(2,'0')}">${m}</option>`
+    ).join('');
+    monthSelect.value = currentMonth;
+  }
+
+  fillSelect(yearSelect, currentYear);
+  fillSelect(annualSelect, currentYear);
+
+  if (!monthSelect.dataset.ready) {
+    monthSelect.addEventListener('change', aiDashboardRender);
+    yearSelect.addEventListener('change', aiDashboardRender);
+    annualSelect.addEventListener('change', aiDashboardRender);
+    monthSelect.dataset.ready = '1';
+  }
+
+  const selectedKey = yearSelect.value+'-'+monthSelect.value;
+
+  const monthlyAI = inseminations.filter(r =>
+    aiDashboardDateKey(r.inseminationDate) === selectedKey
+  );
+
+  const pregnancyChecks = inseminations.filter(r =>
+    aiDashboardDateKey(r.pregnancyCheckDate) === selectedKey
+  );
+
+  const successful = inseminations.filter(r =>
+    r.result === 'pregnant' &&
+    aiDashboardDateKey(r.pregnancyCheckDate) === selectedKey
+  );
+
+  const failed = inseminations.filter(r => {
+    if (r.heatReturnStatus === 'yes') {
+      return aiDashboardDateKey(r.heatReturnCheckedAt) === selectedKey;
+    }
+    return r.result === 'not_pregnant' &&
+      aiDashboardDateKey(r.pregnancyCheckDate) === selectedKey;
+  });
+
+  const femaleCalves = inseminations.filter(r =>
+    r.calvingStatus === 'born' &&
+    r.calfGender === 'ගැහැනු' &&
+    aiDashboardDateKey(r.calvingDate) === selectedKey
+  );
+
+  const maleCalves = inseminations.filter(r =>
+    r.calvingStatus === 'born' &&
+    r.calfGender === 'පිරිමි' &&
+    aiDashboardDateKey(r.calvingDate) === selectedKey
+  );
+
+  const cards = [
+    ['කළ AI සිංචන', monthlyAI.length],
+    ['ගැබ් පරීක්ෂණ', pregnancyChecks.length],
+    ['P - සාර්ථක', successful.length],
+    ['NP - අසාර්ථක', failed.length],
+    ['ගැහැනු පැටවුන්', femaleCalves.length],
+    ['පිරිමි පැටවුන්', maleCalves.length]
+  ];
+
+  statsBox.innerHTML = cards.map(([label,value]) =>
+    `<div class="stat">
+      <strong>${value}</strong>
+      <span>${label}</span>
+    </div>`
+  ).join('');
+
+  const chartYear = annualSelect.value;
+  const counts = Array.from({length:12}, (_,i) =>
+    inseminations.filter(r => {
+      const key = aiDashboardDateKey(r.inseminationDate);
+      return key === chartYear+'-'+String(i+1).padStart(2,'0');
+    }).length
+  );
+
+  const max = Math.max(1, ...counts);
+  const width = 600;
+  const height = 270;
+  const chartTop = 25;
+  const chartBottom = 215;
+  const chartHeight = chartBottom-chartTop;
+  const barWidth = 28;
+  const gap = 19;
+
+  const bars = counts.map((value,i) => {
+    const x = 38+i*(barWidth+gap);
+    const h = value/max*chartHeight;
+    const y = chartBottom-h;
+
+    return `
+      <rect x="${x}" y="${y}" width="${barWidth}"
+        height="${Math.max(h,1)}" rx="4" fill="#15803d"/>
+      <text x="${x+barWidth/2}" y="${Math.max(y-7,15)}"
+        text-anchor="middle" font-size="11">${value}</text>
+      <text x="${x+barWidth/2}" y="238"
+        text-anchor="middle" font-size="10">${i+1}</text>
+    `;
+  }).join('');
+
+  chartBox.innerHTML = `
+    <p class="small">මාසය අනුව සිදුකළ AI සිංචන ගණන</p>
+    <svg viewBox="0 0 ${width} ${height}"
+      role="img" aria-label="${chartYear} වාර්ෂික AI ප්‍රගතිය"
+      style="width:100%;height:auto">
+      <line x1="25" y1="${chartBottom}" x2="585"
+        y2="${chartBottom}" stroke="#94a3b8"/>
+      ${bars}
+    </svg>
+    <p class="small">තිරස් අක්ෂය: මාස අංකය | සිරස් අගයන්: AI සිංචන ගණන</p>
+  `;
+}
+
+function renderAiDashboard() {
+  aiDashboardRender();
+}
