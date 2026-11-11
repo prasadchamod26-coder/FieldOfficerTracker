@@ -1436,19 +1436,6 @@ if (aiFarmerSearchInput && aiFarmerSearchResults) {
 // වෙනත් ප්‍රදේශවල AI වාර්තා ඇති ගොවීන්
 let selectedExternalFarmer = null;
 
-let historicalAiMode = false;
-
-function setHistoricalAiMode(enabled) {
-  historicalAiMode = !!enabled;
-  const status = document.getElementById('historicalAiModeStatus');
-  const button = document.getElementById('historicalAiModeBtn');
-
-  if (status) status.style.display = historicalAiMode ? 'block' : 'none';
-  if (button) button.textContent = historicalAiMode
-    ? '📚 පැරණි වාර්තා Mode එක සක්‍රියයි'
-    : '📚 පැරණි AI වාර්තාවක් ඇතුළත් කරන්න';
-}
-
 function finishHistoricalAi(record) {
   record.historicalFollowupPending = false;
   record.historicalFollowupStep = '';
@@ -1459,7 +1446,14 @@ function finishHistoricalAi(record) {
 
   renderAiFollowups();
   renderAiDashboard();
-  renderAiRecords(record.farmerId);
+
+  const selectedFarmerId =
+    document.getElementById('aiFarmerSelect')?.value || '';
+
+  if (selectedFarmerId === record.farmerId) {
+    renderAiRecords(record.farmerId);
+  }
+
   alert('පැරණි AI වාර්තාවේ පසු විපරම සාර්ථකව සටහන් කළා.');
 }
 
@@ -1469,6 +1463,8 @@ function renderHistoricalAiQuestion(recordId, step) {
   const content = document.getElementById('historicalAiQuestionContent');
   if (!record || !box || !content) return;
 
+  const section = document.getElementById('historicalAiSection');
+  if (section) section.style.display = 'block';
   box.style.display = 'block';
 
   const questions = {
@@ -1524,6 +1520,8 @@ function resumeHistoricalAiFollowup() {
   );
 
   if (!record) return;
+
+  setHistoricalAiSectionVisible(true);
 
   renderHistoricalAiQuestion(
     record.id,
@@ -1649,6 +1647,285 @@ document.getElementById('aiSelectExternalFarmerBtn')
     selectExternalAiFarmer({ id, name, phone, village, reg });
   });
 
+
+// Separate Historical AI farmer selection and entry
+let selectedHistoricalFarmer = null;
+
+function setHistoricalAiSectionVisible(visible) {
+  const section = document.getElementById('historicalAiSection');
+  const button = document.getElementById('openHistoricalAiSectionBtn');
+
+  if (section) section.style.display = visible ? 'block' : 'none';
+  if (button) {
+    button.textContent = visible
+      ? '📚 පැරණි AI කොටස වසන්න'
+      : '📚 පැරණි AI වාර්තා ඇතුළත් කරන්න';
+  }
+}
+
+const openHistoricalAiSectionBtn =
+  document.getElementById('openHistoricalAiSectionBtn');
+
+if (openHistoricalAiSectionBtn) {
+  openHistoricalAiSectionBtn.addEventListener('click', () => {
+    const section = document.getElementById('historicalAiSection');
+    setHistoricalAiSectionVisible(
+      !section || section.style.display === 'none'
+    );
+  });
+}
+
+function selectHistoricalAiFarmer(farmer, externalFarmer = null) {
+  selectedHistoricalFarmer = {
+    id: farmer.id,
+    externalFarmer: externalFarmer ? {
+      name: externalFarmer.name || '',
+      phone: externalFarmer.phone || '',
+      village: externalFarmer.village || '',
+      reg: externalFarmer.reg || ''
+    } : null,
+    name: farmer.name || '',
+    village: farmer.village || ''
+  };
+
+  const selectedBox =
+    document.getElementById('historicalAiSelectedFarmer');
+  const entryForm =
+    document.getElementById('historicalAiEntryForm');
+
+  if (selectedBox) {
+    selectedBox.textContent =
+      'තෝරාගත් ගොවියා: ' + selectedHistoricalFarmer.name +
+      (selectedHistoricalFarmer.village
+        ? ' | ' + selectedHistoricalFarmer.village : '');
+    selectedBox.style.display = 'block';
+  }
+
+  if (entryForm) entryForm.style.display = 'block';
+
+  [
+    'historicalAiFarmerSearchInput',
+    'historicalAiExternalFarmerSearchInput'
+  ].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.value = '';
+  });
+
+  [
+    'historicalAiFarmerSearchResults',
+    'historicalAiExternalFarmerSearchResults'
+  ].forEach(id => {
+    const box = document.getElementById(id);
+    if (box) box.innerHTML = '';
+  });
+
+  const externalForm =
+    document.getElementById('historicalAiExternalFarmerForm');
+  if (externalForm) externalForm.style.display = 'none';
+}
+
+const historicalFarmerSearch =
+  document.getElementById('historicalAiFarmerSearchInput');
+
+if (historicalFarmerSearch) {
+  historicalFarmerSearch.addEventListener('input', () => {
+    const query = historicalFarmerSearch.value.trim().toLowerCase();
+    const box =
+      document.getElementById('historicalAiFarmerSearchResults');
+
+    box.innerHTML = '';
+    if (!query) return;
+
+    const matches = farmers.filter(f => {
+      return [f.name, f.reg, f.phone]
+        .some(value =>
+          String(value || '').toLowerCase().includes(query)
+        );
+    });
+
+    if (!matches.length) {
+      box.innerHTML = '<p>ගැළපෙන ලියාපදිංචි ගොවියෙකු හමු වුණේ නැහැ.</p>';
+      return;
+    }
+
+    matches.forEach(farmer => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'secondary';
+      button.style.display = 'block';
+      button.style.width = '100%';
+      button.style.margin = '6px 0';
+      button.textContent =
+        farmer.name + ' | ' + (farmer.reg || 'අංකයක් නැත') +
+        ' | ' + (farmer.phone || 'දුරකථනය නැත');
+
+      button.addEventListener('click', () => {
+        selectHistoricalAiFarmer(farmer);
+      });
+
+      box.appendChild(button);
+    });
+  });
+}
+
+const historicalExternalSearch =
+  document.getElementById('historicalAiExternalFarmerSearchInput');
+
+if (historicalExternalSearch) {
+  historicalExternalSearch.addEventListener('input', () => {
+    const query = historicalExternalSearch.value.trim().toLowerCase();
+    const box =
+      document.getElementById('historicalAiExternalFarmerSearchResults');
+
+    box.innerHTML = '';
+    if (!query) return;
+
+    const matches = getExternalAiFarmers().filter(f => {
+      return [f.name, f.phone, f.village, f.reg]
+        .some(value =>
+          String(value || '').toLowerCase().includes(query)
+        );
+    });
+
+    if (!matches.length) {
+      box.innerHTML = '<p>ගැළපෙන වෙනත් ප්‍රදේශයක ගොවියෙකු හමු වුණේ නැහැ.</p>';
+      return;
+    }
+
+    matches.forEach(farmer => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'secondary';
+      button.style.display = 'block';
+      button.style.width = '100%';
+      button.style.margin = '6px 0';
+      button.textContent =
+        farmer.name + ' | ' + (farmer.village || '-') +
+        ' | ' + (farmer.phone || 'දුරකථනය නැත');
+
+      button.addEventListener('click', () => {
+        selectHistoricalAiFarmer(farmer, farmer);
+      });
+
+      box.appendChild(button);
+    });
+  });
+}
+
+const historicalAddExternalBtn =
+  document.getElementById('historicalAiAddExternalFarmerBtn');
+
+if (historicalAddExternalBtn) {
+  historicalAddExternalBtn.addEventListener('click', () => {
+    selectedHistoricalFarmer = null;
+
+    const entryForm =
+      document.getElementById('historicalAiEntryForm');
+    const selectedBox =
+      document.getElementById('historicalAiSelectedFarmer');
+    const form =
+      document.getElementById('historicalAiExternalFarmerForm');
+
+    if (entryForm) entryForm.style.display = 'none';
+    if (selectedBox) selectedBox.style.display = 'none';
+
+    [
+      'historicalAiExternalFarmerName',
+      'historicalAiExternalFarmerPhone',
+      'historicalAiExternalFarmerVillage',
+      'historicalAiExternalFarmerReg'
+    ].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+
+    if (form) form.style.display = 'block';
+  });
+}
+
+const historicalSelectExternalBtn =
+  document.getElementById('historicalAiSelectExternalFarmerBtn');
+
+if (historicalSelectExternalBtn) {
+  historicalSelectExternalBtn.addEventListener('click', () => {
+    const name =
+      document.getElementById('historicalAiExternalFarmerName').value.trim();
+    const phone =
+      document.getElementById('historicalAiExternalFarmerPhone').value.trim();
+    const village =
+      document.getElementById('historicalAiExternalFarmerVillage').value.trim();
+    const reg =
+      document.getElementById('historicalAiExternalFarmerReg').value.trim();
+
+    if (!name || !village) {
+      alert('ගොවියාගේ නම සහ ගම / ප්‍රදේශය ඇතුළත් කරන්න.');
+      return;
+    }
+
+    const farmer = {
+      id: 'external_' + createRecordId(),
+      name,
+      phone,
+      village,
+      reg
+    };
+
+    selectHistoricalAiFarmer(farmer, farmer);
+  });
+}
+
+const saveHistoricalAiButton =
+  document.getElementById('saveHistoricalAiRecordBtn');
+
+if (saveHistoricalAiButton) {
+  saveHistoricalAiButton.addEventListener('click', () => {
+    if (!selectedHistoricalFarmer) {
+      alert('පළමුව පැරණි AI වාර්තාවට අදාළ ගොවියා තෝරන්න.');
+      return;
+    }
+
+    const inseminationDate =
+      document.getElementById('historicalAiDate').value;
+
+    if (!inseminationDate) {
+      alert('පැරණි කෘත්‍රිම සිංචන දිනය ඇතුළත් කරන්න.');
+      return;
+    }
+
+    const farmer = selectedHistoricalFarmer;
+
+    const record = addInseminationRecord({
+      farmerId: farmer.id,
+      externalFarmer: farmer.externalFarmer,
+      species: document.getElementById('historicalAiSpecies').value,
+      animalTag:
+        document.getElementById('historicalAiAnimalTag').value.trim(),
+      inseminationDate,
+      semenStrawNo:
+        document.getElementById('historicalAiStrawNo').value.trim(),
+      officer:
+        document.getElementById('historicalAiOfficer').value.trim(),
+      isHistorical: true
+    });
+
+    [
+      'historicalAiAnimalTag',
+      'historicalAiDate',
+      'historicalAiStrawNo',
+      'historicalAiOfficer'
+    ].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+
+    renderAiFollowups();
+    renderAiDashboard();
+
+    setHistoricalAiSectionVisible(true);
+    renderHistoricalAiQuestion(record.id, 'heat');
+
+    alert('පැරණි AI වාර්තාව සාර්ථකව Save කළා.');
+  });
+}
+
 document.getElementById('aiFarmerSelect').addEventListener('change',e=>{
   selectedExternalFarmer = null;
   const farmerId=e.target.value;
@@ -1656,11 +1933,6 @@ document.getElementById('aiFarmerSelect').addEventListener('change',e=>{
   document.getElementById('aiRecordsList').innerHTML='';
   if(farmerId) renderAiRecords(farmerId);
 });
-
-document.getElementById('historicalAiModeBtn')
-  .addEventListener('click', () => {
-    setHistoricalAiMode(!historicalAiMode);
-  });
 
 document.getElementById('saveAiRecordBtn').addEventListener('click',()=>{
   const farmerId = selectedExternalFarmer
@@ -1678,7 +1950,7 @@ document.getElementById('saveAiRecordBtn').addEventListener('click',()=>{
     return;
   }
 
-  const isHistorical = historicalAiMode;
+  const isHistorical = false;
 
   const record = addInseminationRecord({
     farmerId,
@@ -1701,18 +1973,13 @@ document.getElementById('saveAiRecordBtn').addEventListener('click',()=>{
   ['aiAnimalTag', 'aiDate', 'aiStrawNo', 'aiOfficer']
     .forEach(id => document.getElementById(id).value = '');
 
-  setHistoricalAiMode(false);
 
   renderAiRecords(farmerId);
   renderAiFollowups();
   renderAiDashboard();
   renderExternalAiFarmerSearch('');
 
-  if (isHistorical) {
-    renderHistoricalAiQuestion(record.id, 'heat');
-  } else {
-    alert('AI වාර්තාව සාර්ථකව Save කළා.');
-  }
+  alert('AI වාර්තාව සාර්ථකව Save කළා.');
 });
 
 renderLivestockInputs();

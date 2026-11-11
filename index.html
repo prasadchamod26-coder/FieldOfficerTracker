@@ -237,14 +237,71 @@ button.danger{background:#b91c1c}
 </div>
 </div>
 
-<div id="aiRecordForm" style="display:none">
-
-<button type="button" class="secondary" id="historicalAiModeBtn">
-📚 පැරණි AI වාර්තාවක් ඇතුළත් කරන්න
+<button type="button" class="secondary" id="openHistoricalAiSectionBtn">
+📚 පැරණි AI වාර්තා ඇතුළත් කරන්න
 </button>
-<p id="historicalAiModeStatus" style="display:none">
-📚 පැරණි වාර්තා ඇතුළත් කිරීමේ Mode එක සක්‍රියයි.
-</p>
+
+<div class="card" id="historicalAiSection" style="display:none">
+<h3>📚 පැරණි AI වාර්තා ඇතුළත් කිරීම</h3>
+
+<label>🔍 ලියාපදිංචි ගොවියෙකු සොයන්න</label>
+<input id="historicalAiFarmerSearchInput" type="search"
+ placeholder="නම / ලියාපදිංචි අංකය / දුරකථන අංකය" autocomplete="off">
+<div id="historicalAiFarmerSearchResults"></div>
+
+<label>වෙනත් ප්‍රදේශයක ගොවියෙකු සොයන්න</label>
+<input id="historicalAiExternalFarmerSearchInput" type="search"
+ placeholder="නම / දුරකථන අංකය / ගම" autocomplete="off">
+<div id="historicalAiExternalFarmerSearchResults"></div>
+
+<button type="button" class="secondary" id="historicalAiAddExternalFarmerBtn">
+➕ අලුත් ගොවියෙකු එකතු කරන්න
+</button>
+
+<div id="historicalAiExternalFarmerForm" style="display:none">
+<label>ගොවියාගේ නම *</label>
+<input id="historicalAiExternalFarmerName" maxlength="120">
+<label>දුරකථන අංකය</label>
+<input id="historicalAiExternalFarmerPhone" type="tel" maxlength="30">
+<label>ගම / ප්‍රදේශය *</label>
+<input id="historicalAiExternalFarmerVillage" maxlength="120">
+<label>ලියාපදිංචි අංකය (තිබේ නම්)</label>
+<input id="historicalAiExternalFarmerReg" maxlength="60">
+<button type="button" id="historicalAiSelectExternalFarmerBtn">
+✅ මේ ගොවියා තෝරන්න
+</button>
+</div>
+
+<p id="historicalAiSelectedFarmer" style="display:none"></p>
+
+<div id="historicalAiEntryForm" style="display:none">
+<label>සත්ව වර්ගය</label>
+<select id="historicalAiSpecies">
+<option value="goats">එළුවන්</option>
+<option value="cattle">ගවයන්</option>
+<option value="buffalo">මී ගවයන්</option>
+<option value="other">වෙනත්</option>
+</select>
+<label>සත්ව අංකය / Tag Number</label>
+<input id="historicalAiAnimalTag" maxlength="60">
+<label>කෘත්‍රිම සිංචන දිනය</label>
+<input id="historicalAiDate" type="date">
+<label>වීර්ය මාත්‍රා අංකය / Semen Straw No.</label>
+<input id="historicalAiStrawNo" maxlength="100">
+<label>සිංචනය කළ නිලධාරියා</label>
+<input id="historicalAiOfficer" maxlength="100">
+<button type="button" id="saveHistoricalAiRecordBtn">
+💾 පැරණි AI වාර්තාව Save කරන්න
+</button>
+</div>
+
+<div class="card" id="historicalAiQuestions" style="display:none">
+<h3>📚 පැරණි AI වාර්තාවේ පසු විපරම</h3>
+<div id="historicalAiQuestionContent"></div>
+</div>
+</div>
+
+<div id="aiRecordForm" style="display:none">
 
 <label>සත්ව වර්ගය</label>
 <select id="aiSpecies">
@@ -268,11 +325,6 @@ button.danger{background:#b91c1c}
 
 
 <button type="button" id="saveAiRecordBtn">💾 AI වාර්තාව Save කරන්න</button>
-</div>
-
-<div class="card" id="historicalAiQuestions" style="display:none">
-<h3>📚 පැරණි AI වාර්තාවේ පසු විපරම</h3>
-<div id="historicalAiQuestionContent"></div>
 </div>
 
 <div id="aiRecordsList"></div>
