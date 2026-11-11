@@ -382,6 +382,60 @@ function updateFarmerProfile(farmerId, data, shouldSave = true) {
   if (shouldSave) saveFarmers();
 }
 
+// AI වාර්තාවක් Save කළ විට අදාළ Farm Visit එකත් ස්වයංක්‍රීයව සෑදීම
+function createAiFarmVisit(record) {
+  if (!record || !Array.isArray(visits)) return null;
+
+  // එකම AI වාර්තාවට Visit දෙකක් සෑදීම වළක්වයි.
+  if (visits.some(v => String(v.aiRecordId || '') === String(record.id))) {
+    return null;
+  }
+
+  const farmer = farmers.find(
+    f => String(f.id) === String(record.farmerId)
+  );
+  const external = record.externalFarmer || {};
+
+  const name = String(farmer?.name || external.name || '').trim();
+  if (!name || !record.inseminationDate) return null;
+
+  const reg = farmer?.reg || external.reg || '';
+
+  const visit = {
+    id: 'ai_visit_' + record.id,
+    aiRecordId: record.id,
+    farmerId: record.farmerId || '',
+    name,
+    reg,
+    phone: farmer?.phone || external.phone || '',
+    status: farmer
+      ? (farmer.status || 'registered')
+      : (reg ? 'registered' : 'new'),
+    date: record.inseminationDate,
+    village: farmer?.village || external.village || '',
+    activity: 'කෘතීම සිංචන',
+    notes: [
+      'AI වාර්තාව',
+      record.species ? 'සත්ව වර්ගය: ' + record.species : '',
+      record.animalTag ? 'සත්ව අංකය: ' + record.animalTag : '',
+      record.semenStrawNo ? 'Straw No: ' + record.semenStrawNo : '',
+      record.officer ? 'නිලධාරියා: ' + record.officer : '',
+      record.isHistorical ? 'පැරණි AI වාර්තාව' : ''
+    ].filter(Boolean).join(' | '),
+    latitude: '',
+    longitude: '',
+    gpsAccuracy: '',
+    gpsTimestamp: ''
+  };
+
+  visits.push(visit);
+
+  // දැනට තිබෙන Farm Visit Save ක්‍රමයම භාවිත කරයි.
+  if (typeof save === 'function') save();
+
+  return visit;
+}
+
 // කෘත්‍රිම සිංචන වාර්තාවක් Save කිරීම
 function addInseminationRecord(data) {
   const record = {
@@ -413,6 +467,7 @@ function addInseminationRecord(data) {
   };
 
   inseminations.push(record);
+  createAiFarmVisit(record);
   saveInseminations();
 
   return record;
