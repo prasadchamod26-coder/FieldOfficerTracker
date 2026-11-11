@@ -1352,6 +1352,57 @@ function renderAiRecords(farmerId){
     `).join('');
 }
 
+// AI Records Farmer Search
+const aiFarmerSearchInput = document.getElementById('aiFarmerSearchInput');
+const aiFarmerSearchResults = document.getElementById('aiFarmerSearchResults');
+
+if (aiFarmerSearchInput && aiFarmerSearchResults) {
+  aiFarmerSearchInput.addEventListener('input', () => {
+    const query = aiFarmerSearchInput.value.trim().toLowerCase();
+    aiFarmerSearchResults.innerHTML = '';
+
+    if (!query) return;
+
+    const matches = farmers.filter(f => {
+      const name = String(f.name || '').toLowerCase();
+      const reg = String(f.reg || '').toLowerCase();
+      const phone = String(f.phone || '').toLowerCase();
+
+      return name.includes(query) ||
+             reg.includes(query) ||
+             phone.includes(query);
+    });
+
+    if (!matches.length) {
+      aiFarmerSearchResults.innerHTML = '<p>ගැළපෙන ගොවියෙකු හමු වුණේ නැහැ.</p>';
+      return;
+    }
+
+    matches.forEach(farmer => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'secondary';
+      button.style.display = 'block';
+      button.style.width = '100%';
+      button.style.margin = '6px 0';
+      button.textContent =
+        farmer.name + ' | ලියාපදිංචි අංකය: ' +
+        (farmer.reg || 'නැත') + ' | දුරකථනය: ' +
+        (farmer.phone || 'නැත');
+
+      button.addEventListener('click', () => {
+        const select = document.getElementById('aiFarmerSelect');
+        select.value = String(farmer.id);
+        select.dispatchEvent(new Event('change'));
+        aiFarmerSearchResults.innerHTML = '';
+        aiFarmerSearchInput.value = '';
+      });
+
+      aiFarmerSearchResults.appendChild(button);
+    });
+  });
+}
+
 document.getElementById('aiFarmerSelect').addEventListener('change',e=>{
   const farmerId=e.target.value;
   document.getElementById('aiRecordForm').style.display=farmerId?'block':'none';
