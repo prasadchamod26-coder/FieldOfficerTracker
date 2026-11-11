@@ -202,6 +202,41 @@ button.danger{background:#b91c1c}
 <option value="">-- ගොවියෙකු තෝරන්න --</option>
 </select>
 
+<div class="card" id="aiExternalFarmerSection">
+<h4>🌾 වෙනත් ප්‍රදේශයක ගොවියෙක්</h4>
+
+<label>🔍 වෙනත් ප්‍රදේශයක ගොවියෙකු සොයන්න</label>
+<input
+  id="aiExternalFarmerSearchInput"
+  type="search"
+  placeholder="නම / දුරකථන අංකය / ගම"
+  autocomplete="off"
+>
+<div id="aiExternalFarmerSearchResults"></div>
+
+<button type="button" class="secondary" id="aiAddExternalFarmerBtn">
+➕ අලුත් ගොවියෙකු එකතු කරන්න
+</button>
+
+<div id="aiExternalFarmerForm" style="display:none">
+<label>ගොවියාගේ නම *</label>
+<input id="aiExternalFarmerName" maxlength="120">
+
+<label>දුරකථන අංකය</label>
+<input id="aiExternalFarmerPhone" type="tel" maxlength="30">
+
+<label>ගම / ප්‍රදේශය *</label>
+<input id="aiExternalFarmerVillage" maxlength="120">
+
+<label>ලියාපදිංචි අංකය (තිබේ නම්)</label>
+<input id="aiExternalFarmerReg" maxlength="60">
+
+<button type="button" id="aiSelectExternalFarmerBtn">
+✅ මේ ගොවියා තෝරන්න
+</button>
+</div>
+</div>
+
 <div id="aiRecordForm" style="display:none">
 
 <label>සත්ව වර්ගය</label>
