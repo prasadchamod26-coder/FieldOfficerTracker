@@ -257,6 +257,15 @@ button.danger{background:#b91c1c}
 <div class="card">
 <h3>➕ Add Farm Visit / නව පරීක්ෂණයක්</h3>
 <form id="visitForm">
+<label>🔍 ගොවියෙකු සොයන්න / Search Farmer</label>
+<input
+  id="visitFarmerSearchInput"
+  type="search"
+  placeholder="නම / ලියාපදිංචි අංකය / දුරකථන අංකය"
+  autocomplete="off"
+>
+<div id="visitFarmerSearchResults"></div>
+
 <label>ගොවි මහතා තෝරන්න / Select Farmer Profile</label>
 <select id="visitFarmerSelect">
 <option value="">-- ගොවියෙක් තෝරන්න / Select Farmer --</option>
@@ -659,6 +668,57 @@ $('visitFarmerSelect').addEventListener('change',()=>{
  }
 });
 
+// Farm Visit Farmer Search
+const visitFarmerSearchInput = document.getElementById('visitFarmerSearchInput');
+const visitFarmerSearchResults = document.getElementById('visitFarmerSearchResults');
+
+if (visitFarmerSearchInput && visitFarmerSearchResults) {
+  visitFarmerSearchInput.addEventListener('input', () => {
+    const query = visitFarmerSearchInput.value.trim().toLowerCase();
+    visitFarmerSearchResults.innerHTML = '';
+
+    if (!query) return;
+
+    const matches = farmers.filter(f => {
+      const name = String(f.name || '').toLowerCase();
+      const reg = String(f.reg || '').toLowerCase();
+      const phone = String(f.phone || '').toLowerCase();
+
+      return name.includes(query) ||
+             reg.includes(query) ||
+             phone.includes(query);
+    });
+
+    if (!matches.length) {
+      visitFarmerSearchResults.innerHTML = '<p>ගැළපෙන ගොවියෙකු හමු වුණේ නැහැ.</p>';
+      return;
+    }
+
+    matches.forEach(farmer => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'secondary';
+      button.style.display = 'block';
+      button.style.width = '100%';
+      button.style.margin = '6px 0';
+      button.textContent =
+        farmer.name + ' | ලියාපදිංචි අංකය: ' +
+        (farmer.reg || 'නැත') + ' | දුරකථනය: ' +
+        (farmer.phone || 'නැත');
+
+      button.addEventListener('click', () => {
+        const select = document.getElementById('visitFarmerSelect');
+        select.value = String(farmer.id);
+        select.dispatchEvent(new Event('change'));
+        visitFarmerSearchResults.innerHTML = '';
+        visitFarmerSearchInput.value = '';
+      });
+
+      visitFarmerSearchResults.appendChild(button);
+    });
+  });
+}
+
 $('visitForm').addEventListener('submit',e=>{
  e.preventDefault();
  const name=$('name').value.trim();
@@ -671,6 +731,8 @@ $('visitForm').addEventListener('submit',e=>{
  visits.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),farmerId,name,reg,phone,status,date:$('date').value,village:$('village').value.trim(),activity:$('activity').value,notes:$('notes').value.trim(),latitude:$('latitude').value,longitude:$('longitude').value,gpsAccuracy:$('gpsAccuracy').value,gpsTimestamp:$('gpsTimestamp').value});
  save();
  $('visitForm').reset();
+ $('visitFarmerSearchInput').value='';
+ $('visitFarmerSearchResults').innerHTML='';
  ['name','reg','phone'].forEach(id=>$(id).readOnly=false);
  $('village').disabled=false;
  $('status').disabled=false;
