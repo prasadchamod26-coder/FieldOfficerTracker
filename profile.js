@@ -875,6 +875,9 @@ function showFarmerDetails(farmer){
       refreshFarmerSelect();
       refreshAiFarmerSelect();
 
+      document.getElementById('farmerSearchInput').value = '';
+      document.getElementById('farmerSearchResults').innerHTML = '';
+
       document.getElementById('farmerSelect').value = '';
       document.getElementById('aiFarmerSelect').value = '';
       document.getElementById('aiRecordForm').style.display = 'none';
@@ -1084,6 +1087,8 @@ document.getElementById('saveFarmerBtn').addEventListener('click',()=>{
   refreshVillageDropdown(farmer.village || '');
   refreshFarmerSelect();
   refreshAiFarmerSelect();
+  document.getElementById('farmerSearchInput').value = '';
+  document.getElementById('farmerSearchResults').innerHTML = '';
   document.getElementById('farmerSelect').value=farmer.id;
   showFarmerDetails(farmer);
 
@@ -1091,6 +1096,57 @@ document.getElementById('saveFarmerBtn').addEventListener('click',()=>{
 
   alert('ගොවි පැතිකඩ සාර්ථකව Save කළා.');
 });
+
+// Farmer Search
+const farmerSearchInput = document.getElementById('farmerSearchInput');
+const farmerSearchResults = document.getElementById('farmerSearchResults');
+
+if (farmerSearchInput && farmerSearchResults) {
+  farmerSearchInput.addEventListener('input', () => {
+    const query = farmerSearchInput.value.trim().toLowerCase();
+    farmerSearchResults.innerHTML = '';
+
+    if (!query) return;
+
+    const matches = farmers.filter(f => {
+      const name = String(f.name || '').toLowerCase();
+      const reg = String(f.reg || '').toLowerCase();
+      const phone = String(f.phone || '').toLowerCase();
+
+      return name.includes(query) ||
+             reg.includes(query) ||
+             phone.includes(query);
+    });
+
+    if (!matches.length) {
+      farmerSearchResults.innerHTML = '<p>ගැළපෙන ගොවියෙකු හමු වුණේ නැහැ.</p>';
+      return;
+    }
+
+    matches.forEach(farmer => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'secondary';
+      button.style.display = 'block';
+      button.style.width = '100%';
+      button.style.margin = '6px 0';
+      button.textContent =
+        farmer.name + ' | ලියාපදිංචි අංකය: ' +
+        (farmer.reg || 'නැත') + ' | දුරකථනය: ' +
+        (farmer.phone || 'නැත');
+
+      button.addEventListener('click', () => {
+        const select = document.getElementById('farmerSelect');
+        select.value = String(farmer.id);
+        showFarmerDetails(farmer);
+        farmerSearchResults.innerHTML = '';
+        farmerSearchInput.value = '';
+      });
+
+      farmerSearchResults.appendChild(button);
+    });
+  });
+}
 
 // Select Farmer
 document.getElementById('farmerSelect').addEventListener('change',e=>{
