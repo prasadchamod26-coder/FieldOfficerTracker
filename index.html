@@ -239,6 +239,13 @@ button.danger{background:#b91c1c}
 
 <div id="aiRecordForm" style="display:none">
 
+<button type="button" class="secondary" id="historicalAiModeBtn">
+📚 පැරණි AI වාර්තාවක් ඇතුළත් කරන්න
+</button>
+<p id="historicalAiModeStatus" style="display:none">
+📚 පැරණි වාර්තා ඇතුළත් කිරීමේ Mode එක සක්‍රියයි.
+</p>
+
 <label>සත්ව වර්ගය</label>
 <select id="aiSpecies">
 <option value="goats">එළුවන්</option>
@@ -261,6 +268,11 @@ button.danger{background:#b91c1c}
 
 
 <button type="button" id="saveAiRecordBtn">💾 AI වාර්තාව Save කරන්න</button>
+</div>
+
+<div class="card" id="historicalAiQuestions" style="display:none">
+<h3>📚 පැරණි AI වාර්තාවේ පසු විපරම</h3>
+<div id="historicalAiQuestionContent"></div>
 </div>
 
 <div id="aiRecordsList"></div>

@@ -400,6 +400,9 @@ function addInseminationRecord(data) {
     inseminationDate: data.inseminationDate || '',
     semenStrawNo: data.semenStrawNo || '',
     officer: data.officer || '',
+    isHistorical: data.isHistorical === true,
+    historicalFollowupPending: data.isHistorical === true,
+    historicalFollowupStep: data.isHistorical === true ? 'heat' : '',
     pregnancyCheckDate: '',
     result: 'not_checked',
     heatReturnStatus: 'pending',
@@ -1265,6 +1268,9 @@ function renderAiFollowups() {
   inseminations.forEach(r => {
     if (!r.inseminationDate) return;
 
+    // පැරණි වාර්තාවේ පසු විපරම් තීරණය කරන තුරු සාමාන්‍ය Reminder නොපෙන්වන්න.
+    if (r.isHistorical && r.historicalFollowupPending) return;
+
     const farmer = farmers.find(f => f.id === r.farmerId);
     const farmerName = farmer
       ? farmer.name
@@ -1430,6 +1436,105 @@ if (aiFarmerSearchInput && aiFarmerSearchResults) {
 // වෙනත් ප්‍රදේශවල AI වාර්තා ඇති ගොවීන්
 let selectedExternalFarmer = null;
 
+let historicalAiMode = false;
+
+function setHistoricalAiMode(enabled) {
+  historicalAiMode = !!enabled;
+  const status = document.getElementById('historicalAiModeStatus');
+  const button = document.getElementById('historicalAiModeBtn');
+
+  if (status) status.style.display = historicalAiMode ? 'block' : 'none';
+  if (button) button.textContent = historicalAiMode
+    ? '📚 පැරණි වාර්තා Mode එක සක්‍රියයි'
+    : '📚 පැරණි AI වාර්තාවක් ඇතුළත් කරන්න';
+}
+
+function finishHistoricalAi(record) {
+  record.historicalFollowupPending = false;
+  record.historicalFollowupStep = '';
+  saveInseminations();
+
+  const box = document.getElementById('historicalAiQuestions');
+  if (box) box.style.display = 'none';
+
+  renderAiFollowups();
+  renderAiDashboard();
+  renderAiRecords(record.farmerId);
+  alert('පැරණි AI වාර්තාවේ පසු විපරම සාර්ථකව සටහන් කළා.');
+}
+
+function renderHistoricalAiQuestion(recordId, step) {
+  const record = inseminations.find(r => r.id === recordId);
+  const box = document.getElementById('historicalAiQuestions');
+  const content = document.getElementById('historicalAiQuestionContent');
+  if (!record || !box || !content) return;
+
+  box.style.display = 'block';
+
+  const questions = {
+    heat: ['දින 21කින් ගවයා නැවත පට්ටියට ආවද?', 'heat_yes', 'heat_no'],
+    pd: ['PD පරීක්ෂාව කළාද?', 'pd_yes', 'pd_no'],
+    result: ['PD පරීක්ෂණයේ ප්‍රතිඵලය කුමක්ද?', 'result_p', 'result_np']
+  };
+
+  const q = questions[step];
+  if (!q) return;
+
+  content.innerHTML = `
+    <p><b>${q[0]}</b></p>
+    <button type="button" onclick="answerHistoricalAi('${recordId}','${q[1]}')">${step === 'result' ? 'P - ගැබ්ගෙන ඇත' : 'ඔව්'}</button>
+    <button type="button" class="secondary" onclick="answerHistoricalAi('${recordId}','${q[2]}')">${step === 'result' ? 'NP - ගැබ්ගෙන නැත' : 'නෑ'}</button>
+  `;
+}
+
+function answerHistoricalAi(recordId, answer) {
+  const record = inseminations.find(r => r.id === recordId);
+  if (!record || !record.historicalFollowupPending) return;
+
+  if (answer === 'heat_yes') {
+    record.heatReturnStatus = 'yes';
+    record.result = 'not_pregnant';
+    finishHistoricalAi(record);
+  } else if (answer === 'heat_no') {
+    record.heatReturnStatus = 'no';
+    record.historicalFollowupStep = 'pd';
+    saveInseminations();
+    renderHistoricalAiQuestion(recordId, 'pd');
+  } else if (answer === 'pd_no') {
+    record.result = 'not_checked';
+    finishHistoricalAi(record);
+  } else if (answer === 'pd_yes') {
+    record.historicalFollowupStep = 'result';
+    saveInseminations();
+    renderHistoricalAiQuestion(recordId, 'result');
+  } else if (answer === 'result_p') {
+    record.result = 'pregnant';
+    record.calvingStatus = 'pending';
+    finishHistoricalAi(record);
+  } else if (answer === 'result_np') {
+    record.result = 'not_pregnant';
+    finishHistoricalAi(record);
+  }
+}
+
+
+function resumeHistoricalAiFollowup() {
+  const record = inseminations.find(r =>
+    r.isHistorical && r.historicalFollowupPending
+  );
+
+  if (!record) return;
+
+  renderHistoricalAiQuestion(
+    record.id,
+    record.historicalFollowupStep || 'heat'
+  );
+}
+
+window.answerHistoricalAi = answerHistoricalAi;
+
+
+
 function getExternalAiFarmers() {
   const unique = new Map();
 
@@ -1552,23 +1657,30 @@ document.getElementById('aiFarmerSelect').addEventListener('change',e=>{
   if(farmerId) renderAiRecords(farmerId);
 });
 
+document.getElementById('historicalAiModeBtn')
+  .addEventListener('click', () => {
+    setHistoricalAiMode(!historicalAiMode);
+  });
+
 document.getElementById('saveAiRecordBtn').addEventListener('click',()=>{
   const farmerId = selectedExternalFarmer
     ? selectedExternalFarmer.id
     : document.getElementById('aiFarmerSelect').value;
-  const inseminationDate=document.getElementById('aiDate').value;
+  const inseminationDate = document.getElementById('aiDate').value;
 
-  if(!farmerId){
+  if (!farmerId) {
     alert('පළමුව ගොවියෙක් තෝරන්න.');
     return;
   }
 
-  if(!inseminationDate){
+  if (!inseminationDate) {
     alert('කෘත්‍රිම සිංචන දිනය ඇතුළත් කරන්න.');
     return;
   }
 
-  addInseminationRecord({
+  const isHistorical = historicalAiMode;
+
+  const record = addInseminationRecord({
     farmerId,
     externalFarmer: selectedExternalFarmer
       ? {
@@ -1578,21 +1690,29 @@ document.getElementById('saveAiRecordBtn').addEventListener('click',()=>{
           reg: selectedExternalFarmer.reg
         }
       : null,
-    species:document.getElementById('aiSpecies').value,
-    animalTag:document.getElementById('aiAnimalTag').value.trim(),
+    species: document.getElementById('aiSpecies').value,
+    animalTag: document.getElementById('aiAnimalTag').value.trim(),
     inseminationDate,
-    semenStrawNo:document.getElementById('aiStrawNo').value.trim(),
-    officer:document.getElementById('aiOfficer').value.trim(),
+    semenStrawNo: document.getElementById('aiStrawNo').value.trim(),
+    officer: document.getElementById('aiOfficer').value.trim(),
+    isHistorical
   });
 
-  ['aiAnimalTag','aiDate','aiStrawNo','aiOfficer']
-    .forEach(id=>document.getElementById(id).value='');
+  ['aiAnimalTag', 'aiDate', 'aiStrawNo', 'aiOfficer']
+    .forEach(id => document.getElementById(id).value = '');
+
+  setHistoricalAiMode(false);
 
   renderAiRecords(farmerId);
   renderAiFollowups();
   renderAiDashboard();
   renderExternalAiFarmerSearch('');
-  alert('AI වාර්තාව සාර්ථකව Save කළා.');
+
+  if (isHistorical) {
+    renderHistoricalAiQuestion(record.id, 'heat');
+  } else {
+    alert('AI වාර්තාව සාර්ථකව Save කළා.');
+  }
 });
 
 renderLivestockInputs();
@@ -1602,6 +1722,7 @@ initializeAreaStatisticsDashboard();
 refreshFarmerSelect();
 refreshAiFarmerSelect();
 renderAiFollowups();
+resumeHistoricalAiFollowup();
 
 
 // AREA STATISTICS DASHBOARD
