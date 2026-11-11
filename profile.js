@@ -1333,6 +1333,7 @@ function renderAiFollowups() {
     : '<p>අද කළ යුතු AI පසු විපරම් නැත. ✅</p>';
 }
 
+
 function renderAiRecords(farmerId){
   const box=document.getElementById('aiRecordsList');
   const records=inseminations.filter(r=>r.farmerId===farmerId);
@@ -1378,9 +1379,181 @@ function renderAiRecords(farmerId){
               ? 'තවම පැටවා ලැබී නැහැ'
               : '-'
         }</p>
+
+        <button type="button"
+          onclick="openAiPdCheck('${aiSafeText(r.id)}')">
+          🧪 PD Check / ප්‍රතිඵලය වෙනස් කරන්න
+        </button>
+
+        <div id="aiPdForm_${aiSafeText(r.id)}"
+             style="display:none;margin-top:10px;">
+          <label>PD පරීක්ෂණය කළ දිනය</label>
+          <input type="date"
+            id="aiPdDate_${aiSafeText(r.id)}"
+            min="${aiSafeText(r.inseminationDate || '')}"
+            max="${aiToday()}"
+            value="${aiSafeText(r.pregnancyCheckDate || aiToday())}">
+          <button type="button"
+            onclick="saveAiPdCheck('${aiSafeText(r.id)}','pregnant')">
+            P - ගැබ්ගෙන ඇත
+          </button>
+          <button type="button" class="secondary"
+            onclick="saveAiPdCheck('${aiSafeText(r.id)}','not_pregnant')">
+            NP - ගැබ්ගෙන නැත
+          </button>
+          <button type="button" class="secondary"
+            onclick="closeAiPdCheck('${aiSafeText(r.id)}')">
+            අවලංගු කරන්න
+          </button>
+        </div>
+
+        <button type="button" class="secondary"
+          onclick="deleteAiRecord('${aiSafeText(r.id)}')">
+          🗑️ මෙම AI වාර්තාව ඉවත් කරන්න
+        </button>
       </div>
     `).join('');
 }
+
+function openAiPdCheck(recordId) {
+  const form = document.getElementById('aiPdForm_' + recordId);
+  if (form) form.style.display = 'block';
+}
+
+function closeAiPdCheck(recordId) {
+  const form = document.getElementById('aiPdForm_' + recordId);
+  if (form) form.style.display = 'none';
+}
+
+function saveAiPdCheck(recordId, result) {
+  const r = inseminations.find(x => String(x.id) === String(recordId));
+  if (!r || !['pregnant', 'not_pregnant'].includes(result)) return;
+
+  const dateInput = document.getElementById('aiPdDate_' + recordId);
+  const checkDate = dateInput ? dateInput.value : '';
+
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(checkDate);
+  if (!dateMatch) {
+    alert('PD පරීක්ෂණ දිනය නිවැරදිව තෝරන්න.');
+    return;
+  }
+
+  const year = Number(dateMatch[1]);
+  const month = Number(dateMatch[2]);
+  const day = Number(dateMatch[3]);
+  const parsedDate = new Date(Date.UTC(year, month - 1, day));
+
+  if (parsedDate.getUTCFullYear() !== year ||
+      parsedDate.getUTCMonth() !== month - 1 ||
+      parsedDate.getUTCDate() !== day ||
+      checkDate < r.inseminationDate ||
+      checkDate > aiToday()) {
+    alert('PD පරීක්ෂණ දිනය නිවැරදිව ඇතුළත් කරන්න.');
+    return;
+  }
+
+  const previousResult = r.result;
+  r.pregnancyCheckDate = checkDate;
+  r.result = result;
+
+  // පැරණි AI Follow-up ප්‍රශ්න අවසන් කිරීම.
+  r.historicalFollowupPending = false;
+  r.historicalFollowupStep = '';
+
+  if (result === 'pregnant') {
+    if (previousResult !== 'pregnant') {
+      r.calvingStatus = 'pending';
+      r.calfGender = '';
+      r.calvingDate = '';
+      r.nextCalvingCheckDate = '';
+    } else if (!r.calvingStatus) {
+      r.calvingStatus = 'pending';
+    }
+  } else {
+    r.calvingStatus = 'not_applicable';
+    r.calfGender = '';
+    r.calvingDate = '';
+    r.nextCalvingCheckDate = '';
+  }
+
+  saveInseminations();
+
+  const historicalBox = document.getElementById('historicalAiQuestions');
+  if (historicalBox) historicalBox.style.display = 'none';
+
+  renderAiFollowups();
+  renderAiDashboard();
+
+  if (selectedExternalFarmer &&
+      String(selectedExternalFarmer.id) === String(r.farmerId)) {
+    renderAiRecords(selectedExternalFarmer.id);
+  } else {
+    const select = document.getElementById('aiFarmerSelect');
+    if (select && String(select.value) === String(r.farmerId)) {
+      renderAiRecords(r.farmerId);
+    }
+  }
+
+  if (typeof resumeHistoricalAiFollowup === 'function') {
+    resumeHistoricalAiFollowup();
+  }
+
+  alert(result === 'pregnant'
+    ? 'P ප්‍රතිඵලය සහ PD දිනය සටහන් කළා. පැටවා ලැබෙන දිනය AI දිනයෙන් දින 285ක් ලෙස ගණනය කළා.'
+    : 'NP ප්‍රතිඵලය සහ PD දිනය සටහන් කළා. පැටවා ලැබීමේ Reminder එක ඉවත් කළා.');
+}
+
+function deleteAiRecord(recordId) {
+  const record = inseminations.find(r => String(r.id) === String(recordId));
+  if (!record) return;
+
+  if (!confirm(
+    'මෙම AI වාර්තාව ස්ථිරවම ඉවත් කරන්නද?\n\n' +
+    'මෙය Phone එකෙන් සහ Cloud එකෙන්ද ඉවත් වේ.'
+  )) return;
+
+  if (window.queueProfileCloudDelete) {
+    window.queueProfileCloudDelete('inseminations', record.id);
+  }
+
+  inseminations = inseminations.filter(
+    r => String(r.id) !== String(recordId)
+  );
+
+  saveInseminations();
+
+  const historicalBox = document.getElementById('historicalAiQuestions');
+  if (historicalBox) historicalBox.style.display = 'none';
+
+  renderAiFollowups();
+  renderAiDashboard();
+
+  if (selectedExternalFarmer &&
+      String(selectedExternalFarmer.id) === String(record.farmerId)) {
+    renderAiRecords(selectedExternalFarmer.id);
+  } else {
+    const select = document.getElementById('aiFarmerSelect');
+    if (select && String(select.value) === String(record.farmerId)) {
+      renderAiRecords(record.farmerId);
+    }
+  }
+
+  const externalSearch = document.getElementById('aiExternalFarmerSearchInput');
+  if (externalSearch && typeof renderExternalAiFarmerSearch === 'function') {
+    renderExternalAiFarmerSearch(externalSearch.value);
+  }
+
+  if (typeof resumeHistoricalAiFollowup === 'function') {
+    resumeHistoricalAiFollowup();
+  }
+
+  alert('AI වාර්තාව ඉවත් කළා.');
+}
+
+window.openAiPdCheck = openAiPdCheck;
+window.closeAiPdCheck = closeAiPdCheck;
+window.saveAiPdCheck = saveAiPdCheck;
+window.deleteAiRecord = deleteAiRecord;
 
 // AI Records Farmer Search
 const aiFarmerSearchInput = document.getElementById('aiFarmerSearchInput');
