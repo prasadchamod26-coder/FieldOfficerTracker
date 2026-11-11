@@ -2,6 +2,16 @@
 
 const FARMER_KEY = 'fieldOfficerTracker_farmers_v1';
 const AI_KEY = 'fieldOfficerTracker_inseminations_v1';
+const VILLAGE_KEY = 'fieldOfficerTracker_villages_v1';
+
+let villages = [];
+
+try {
+  villages = JSON.parse(localStorage.getItem(VILLAGE_KEY) || '[]');
+  if (!Array.isArray(villages)) villages = [];
+} catch (e) {
+  villages = [];
+}
 
 let farmers = [];
 let inseminations = [];
@@ -18,6 +28,100 @@ try {
   if (!Array.isArray(inseminations)) inseminations = [];
 } catch (e) {
   inseminations = [];
+}
+
+// ======================================
+// VILLAGE / AREA MANAGEMENT
+// ======================================
+
+function getAllVillages() {
+  const farmerVillages = farmers
+    .map(f => String(f.village || '').trim())
+    .filter(Boolean);
+
+  return [...new Set([
+    ...villages.map(v => String(v || '').trim()).filter(Boolean),
+    ...farmerVillages
+  ])].sort((a, b) => a.localeCompare(b, 'si'));
+}
+
+function saveVillages() {
+  villages = [...new Set(
+    villages.map(v => String(v || '').trim()).filter(Boolean)
+  )];
+
+  localStorage.setItem(VILLAGE_KEY, JSON.stringify(villages));
+}
+
+function refreshVillageDropdown(selectedValue = null) {
+  const select = document.getElementById('profileVillage');
+  if (!select) return;
+
+  const currentValue =
+    selectedValue !== null ? selectedValue : select.value;
+
+  const allVillages = getAllVillages();
+
+  select.innerHTML = '';
+
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.textContent = '-- ප්‍රදේශය තෝරන්න --';
+  select.appendChild(defaultOption);
+
+  allVillages.forEach(village => {
+    const option = document.createElement('option');
+    option.value = village;
+    option.textContent = village;
+    select.appendChild(option);
+  });
+
+  if (allVillages.includes(currentValue)) {
+    select.value = currentValue;
+  }
+}
+
+function addVillage(villageName) {
+  const name = String(villageName || '').trim();
+
+  if (!name) {
+    alert('ප්‍රදේශයේ නම ඇතුළත් කරන්න.');
+    return false;
+  }
+
+  const exists = getAllVillages().some(
+    v => v.toLocaleLowerCase() === name.toLocaleLowerCase()
+  );
+
+  if (!exists) {
+    villages.push(name);
+    saveVillages();
+  }
+
+  refreshVillageDropdown(name);
+  return true;
+}
+
+function initializeVillageManagement() {
+  refreshVillageDropdown();
+
+  const addButton = document.getElementById('addVillageBtn');
+  const input = document.getElementById('newVillageName');
+
+  if (!addButton || !input) return;
+
+  addButton.addEventListener('click', () => {
+    if (addVillage(input.value)) {
+      input.value = '';
+    }
+  });
+
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      addButton.click();
+    }
+  });
 }
 
 function backupBeforeProfileChange() {
@@ -444,6 +548,7 @@ function collectLivestockData(existingLivestock={}){
 
 // Farmer Profile Dropdown
 function refreshFarmerSelect(){
+ refreshVillageDropdown();
  const visitSelect=document.getElementById('visitFarmerSelect');
  if(visitSelect){
   const previous=visitSelect.value;
@@ -689,6 +794,7 @@ function showFarmerDetails(farmer){
       document.getElementById('profileName').value=farmer.name||'';
       document.getElementById('profileReg').value=farmer.reg||'';
       document.getElementById('profilePhone').value=farmer.phone||'';
+      refreshVillageDropdown(farmer.village||'');
       document.getElementById('profileVillage').value=farmer.village||'';
       document.getElementById('profileStatus').value=farmer.status||'registered';
 
@@ -708,6 +814,7 @@ function showFarmerDetails(farmer){
       document.getElementById('profileName').value=farmer.name||'';
       document.getElementById('profileReg').value=farmer.reg||'';
       document.getElementById('profilePhone').value=farmer.phone||'';
+      refreshVillageDropdown(farmer.village||'');
       document.getElementById('profileVillage').value=farmer.village||'';
       document.getElementById('profileStatus').value=farmer.status||'registered';
 
@@ -873,6 +980,7 @@ document.getElementById('saveFarmerBtn').addEventListener('click',()=>{
     });
   }
 
+  refreshVillageDropdown(farmer.village || '');
   refreshFarmerSelect();
   refreshAiFarmerSelect();
   document.getElementById('farmerSelect').value=farmer.id;
@@ -1127,6 +1235,7 @@ document.getElementById('saveAiRecordBtn').addEventListener('click',()=>{
 });
 
 renderLivestockInputs();
+initializeVillageManagement();
 initializeAreaStatisticsDashboard();
 refreshFarmerSelect();
 refreshAiFarmerSelect();
