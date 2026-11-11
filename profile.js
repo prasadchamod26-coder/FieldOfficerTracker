@@ -3,6 +3,7 @@
 const FARMER_KEY = 'fieldOfficerTracker_farmers_v1';
 const AI_KEY = 'fieldOfficerTracker_inseminations_v1';
 const VILLAGE_KEY = 'fieldOfficerTracker_villages_v1';
+const VISIT_VILLAGE_KEY = 'fieldOfficerTracker_visit_villages_v1';
 
 let villages = [];
 
@@ -11,6 +12,15 @@ try {
   if (!Array.isArray(villages)) villages = [];
 } catch (e) {
   villages = [];
+}
+
+let visitVillages = [];
+
+try {
+  visitVillages = JSON.parse(localStorage.getItem(VISIT_VILLAGE_KEY) || '[]');
+  if (!Array.isArray(visitVillages)) visitVillages = [];
+} catch (e) {
+  visitVillages = [];
 }
 
 let farmers = [];
@@ -112,6 +122,96 @@ function initializeVillageManagement() {
 
   addButton.addEventListener('click', () => {
     if (addVillage(input.value)) {
+      input.value = '';
+    }
+  });
+
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      addButton.click();
+    }
+  });
+}
+
+// ======================================
+// FARM VISIT VILLAGE MANAGEMENT
+// ======================================
+
+function getAllVisitVillages() {
+  return [...new Set([
+    ...getAllVillages(),
+    ...visitVillages.map(v => String(v || '').trim()).filter(Boolean)
+  ])].sort((a, b) => a.localeCompare(b, 'si'));
+}
+
+function saveVisitVillages() {
+  visitVillages = [...new Set(
+    visitVillages.map(v => String(v || '').trim()).filter(Boolean)
+  )];
+
+  localStorage.setItem(VISIT_VILLAGE_KEY, JSON.stringify(visitVillages));
+}
+
+function refreshVisitVillageDropdown(selectedValue = null) {
+  const select = document.getElementById('village');
+  if (!select) return;
+
+  const currentValue =
+    selectedValue !== null ? selectedValue : select.value;
+
+  const allVillages = getAllVisitVillages();
+
+  select.innerHTML = '';
+
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.textContent = '-- ප්‍රදේශය තෝරන්න --';
+  select.appendChild(defaultOption);
+
+  allVillages.forEach(village => {
+    const option = document.createElement('option');
+    option.value = village;
+    option.textContent = village;
+    select.appendChild(option);
+  });
+
+  if (allVillages.includes(currentValue)) {
+    select.value = currentValue;
+  }
+}
+
+function addVisitVillage(villageName) {
+  const name = String(villageName || '').trim();
+
+  if (!name) {
+    alert('ප්‍රදේශයේ නම ඇතුළත් කරන්න.');
+    return false;
+  }
+
+  const exists = getAllVisitVillages().some(
+    v => v.toLocaleLowerCase() === name.toLocaleLowerCase()
+  );
+
+  if (!exists) {
+    visitVillages.push(name);
+    saveVisitVillages();
+  }
+
+  refreshVisitVillageDropdown(name);
+  return true;
+}
+
+function initializeVisitVillageManagement() {
+  refreshVisitVillageDropdown();
+
+  const addButton = document.getElementById('addVisitVillageBtn');
+  const input = document.getElementById('newVisitVillageName');
+
+  if (!addButton || !input) return;
+
+  addButton.addEventListener('click', () => {
+    if (addVisitVillage(input.value)) {
       input.value = '';
     }
   });
@@ -549,6 +649,7 @@ function collectLivestockData(existingLivestock={}){
 // Farmer Profile Dropdown
 function refreshFarmerSelect(){
  refreshVillageDropdown();
+ refreshVisitVillageDropdown();
  const visitSelect=document.getElementById('visitFarmerSelect');
  if(visitSelect){
   const previous=visitSelect.value;
@@ -1236,6 +1337,7 @@ document.getElementById('saveAiRecordBtn').addEventListener('click',()=>{
 
 renderLivestockInputs();
 initializeVillageManagement();
+initializeVisitVillageManagement();
 initializeAreaStatisticsDashboard();
 refreshFarmerSelect();
 refreshAiFarmerSelect();

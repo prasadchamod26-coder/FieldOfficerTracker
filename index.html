@@ -272,7 +272,14 @@ button.danger{background:#b91c1c}
 <input id="date" type="date" required>
 
 <label>ගම / ප්‍රදේශය / Village or Area</label>
-<input id="village" maxlength="100" placeholder="ගම හෝ ප්‍රදේශය">
+<select id="village">
+  <option value="">-- ප්‍රදේශය තෝරන්න --</option>
+</select>
+
+<div class="row">
+  <input id="newVisitVillageName" maxlength="100" placeholder="Farm Visit සඳහා නව ප්‍රදේශයක්">
+  <button type="button" id="addVisitVillageBtn">➕ එකතු කරන්න</button>
+</div>
 
 <label>පරීක්ෂණ වර්ගය / Activity *</label>
 <select id="activity" required>
@@ -626,15 +633,18 @@ $('visitFarmerSelect').addEventListener('change',()=>{
   $('status').value=farmer.status||'registered';
   $('village').value=farmer.village||'';
 
-  ['name','reg','phone','village'].forEach(id=>{
+  ['name','reg','phone'].forEach(id=>{
    $(id).readOnly=true;
   });
+  $('village').disabled=true;
   $('status').disabled=true;
  }else{
-  ['name','reg','phone','village'].forEach(id=>{
+  ['name','reg','phone'].forEach(id=>{
    $(id).value='';
    $(id).readOnly=false;
   });
+  $('village').value='';
+  $('village').disabled=false;
   $('status').disabled=false;
   $('status').value='registered';
  }
@@ -652,7 +662,8 @@ $('visitForm').addEventListener('submit',e=>{
  visits.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),farmerId,name,reg,phone,status,date:$('date').value,village:$('village').value.trim(),activity:$('activity').value,notes:$('notes').value.trim(),latitude:$('latitude').value,longitude:$('longitude').value,gpsAccuracy:$('gpsAccuracy').value,gpsTimestamp:$('gpsTimestamp').value});
  save();
  $('visitForm').reset();
- ['name','reg','phone','village'].forEach(id=>$(id).readOnly=false);
+ ['name','reg','phone'].forEach(id=>$(id).readOnly=false);
+ $('village').disabled=false;
  $('status').disabled=false;
  $('gpsStatus').textContent='GPS Location ලබාගෙන නැත.';
  $('latitude').value='';
